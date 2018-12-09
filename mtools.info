@@ -1,6 +1,6 @@
 This is mtools.info, produced by makeinfo version 6.3 from mtools.texi.
 
-This manual is for Mtools (version 4.0.22, December 2018), which is a
+This manual is for Mtools (version 4.0.23, December 2018), which is a
 collection of tools to allow Unix systems to manipulate MS-DOS files.
 
    Copyright (C) 2007, 2009 Free Software Foundation, Inc.  Copyright
@@ -41,7 +41,7 @@ preliminary mounting or initialization (assuming the default
 '/etc/mtools.conf' works on your machine).  With mtools, one can change
 floppies too without unmounting and mounting.
 
-   This manual is for Mtools (version 4.0.22, December 2018), which is a
+   This manual is for Mtools (version 4.0.23, December 2018), which is a
 collection of tools to allow Unix systems to manipulate MS-DOS files.
 
    Copyright (C) 2007, 2009 Free Software Foundation, Inc.  Copyright
@@ -75,10 +75,10 @@ File: mtools.info,  Node: Location,  Next: Common features,  Prev: Top,  Up: Top
 *********************
 
 Mtools can be found at the following places (and their mirrors):
-     http://ftp.gnu.org/gnu/mtools/mtools-4.0.22.tar.gz
-     http://mtools.linux.lu/mtools-4.0.22.tar.gz
-     ftp://www.tux.org/pub/knaff/mtools/mtools-4.0.22.tar.gz
-     ftp://ibiblio.unc.edu/pub/Linux/utils/disk-management/mtools-4.0.22.tar.gz
+     http://ftp.gnu.org/gnu/mtools/mtools-4.0.23.tar.gz
+     http://mtools.linux.lu/mtools-4.0.23.tar.gz
+     ftp://www.tux.org/pub/knaff/mtools/mtools-4.0.23.tar.gz
+     ftp://ibiblio.unc.edu/pub/Linux/utils/disk-management/mtools-4.0.23.tar.gz
 
    Before reporting a bug, make sure that it has not yet been fixed in
 the Alpha patches which can be found at:
@@ -1681,8 +1681,8 @@ has a different meaning.
 'R'
      Sets the number of reserved sectors for this filesystem.  This must
      be at least 1 for non-FAT32 disks, and at least 3 for FAT disks (in
-     order to accomodate the boot sector, the info sector and the backup
-     boot sector).
+     order to accommodate the boot sector, the info sector and the
+     backup boot sector).
 
 'm'
      Use a non-standard media descriptor byte for this disk.  The media
@@ -2726,26 +2726,26 @@ Node: mdeltree58860
 Node: mdir59279
 Node: mdu60555
 Node: mformat61061
-Node: mkmanifest69571
-Node: minfo71545
-Node: mlabel72115
-Node: mmd73268
-Node: mmount73617
-Node: mmove74216
-Node: mpartition75023
-Node: mrd80536
-Node: mren80894
-Node: mshortname81643
-Node: mshowfat81973
-Node: mtoolstest82382
-Node: mtype82954
-Node: mzip83805
-Ref: mzip-Footnote-185830
-Ref: mzip-Footnote-285911
-Node: Compiling mtools86198
-Node: Porting mtools87297
-Node: Command Index93201
-Node: Variable Index93329
-Node: Concept Index95152
+Node: mkmanifest69572
+Node: minfo71546
+Node: mlabel72116
+Node: mmd73269
+Node: mmount73618
+Node: mmove74217
+Node: mpartition75024
+Node: mrd80537
+Node: mren80895
+Node: mshortname81644
+Node: mshowfat81974
+Node: mtoolstest82383
+Node: mtype82955
+Node: mzip83806
+Ref: mzip-Footnote-185831
+Ref: mzip-Footnote-285912
+Node: Compiling mtools86199
+Node: Porting mtools87298
+Node: Command Index93202
+Node: Variable Index93330
+Node: Concept Index95153
 
 End Tag Table
