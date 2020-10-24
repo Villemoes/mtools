@@ -216,6 +216,9 @@
 /* Define to 1 if you have the `strncasecmp' function. */
 #undef HAVE_STRNCASECMP
 
+/* Define to 1 if you have the `strncasecmp_l' function. */
+#undef HAVE_STRNCASECMP_L
+
 /* Define to 1 if you have the `strndup' function. */
 #undef HAVE_STRNDUP
 
@@ -290,6 +293,9 @@
 
 /* Define to 1 if you have the <termio.h> header file. */
 #undef HAVE_TERMIO_H
+
+/* Define to 1 if you have the `toupper_l' function. */
+#undef HAVE_TOUPPER_L
 
 /* Define to 1 if you have the `tzset' function. */
 #undef HAVE_TZSET
