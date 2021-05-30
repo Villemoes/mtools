@@ -1,6 +1,6 @@
 This is mtools.info, produced by makeinfo version 6.5 from mtools.texi.
 
-This manual is for Mtools (version 4.0.27, April 2021), which is a
+This manual is for Mtools (version 4.0.28, May 2021), which is a
 collection of tools to allow Unix systems to manipulate MS-DOS files.
 
    Copyright (C) 2007, 2009 Free Software Foundation, Inc.  Copyright
@@ -53,7 +53,7 @@ preliminary mounting or initialization (assuming the default
 '/etc/mtools.conf' works on your machine).  With mtools, one can change
 floppies too without unmounting and mounting.
 
-   This manual is for Mtools (version 4.0.27, April 2021), which is a
+   This manual is for Mtools (version 4.0.28, May 2021), which is a
 collection of tools to allow Unix systems to manipulate MS-DOS files.
 
    Copyright (C) 2007, 2009 Free Software Foundation, Inc.  Copyright
@@ -87,7 +87,7 @@ File: mtools.info,  Node: Location,  Next: Common features,  Prev: Top,  Up: Top
 *********************
 
 Mtools can be found at the following places (and their mirrors):
-     http://ftp.gnu.org/gnu/mtools/mtools-4.0.27.tar.gz
+     http://ftp.gnu.org/gnu/mtools/mtools-4.0.28.tar.gz
 
    These patches are named 'mtools-'VERSION'-'DDMM'.taz', where version
 stands for the base version, DD for the day and MM for the month.  Due
@@ -848,6 +848,34 @@ integer (all others)
      specify a global code page for all drives by using the global
      'default_codepage' parameter (outside of any drive description).
      This parameters exists starting at version 4.0.0
+
+'data_map'
+     Remaps data from image file.  This is useful for image files which
+     might need additional zero-filled sectors to be inserted.  Such is
+     the case for instance for IBM 3174 floppy images.  These images
+     represent floppy disks with fewer sectors on their first cylinder.
+     These missing sectors are not stored in the image, but are still
+     counted in the filesystem layout.  The data_map allows to fake
+     these missing sectors for the upper layers of mtools.  A data_map
+     is a comma-separated sequence of source type and size.  Source type
+     may be 'zero' for zero-filled sectors created by map, 'skip' for
+     data in raw image to be ignored (skipped), and nothing for data to
+     be used as is (copied) from the raw image.  Datamap is
+     automatically complemented by an implicit last element of data to
+     be used as is from current offset to end of file.  Each size is a
+     number followed by a unit: 's' for a 512 byte sector, 'K' for
+     Kbytes, 'M' for megabytes, 'G' for gigabytes, and nothing for
+     single bytes.
+
+     Example:
+
+     'data_map=1s,zero31s,28s,skip1s' would be a map for use with IBM
+     3174 floppy images.  First sector ('1s', boot sector) is used as
+     is.  Then follow 31 fake zero-filled sectors ('zero31s'), then the
+     next 28 sectors from image ('28s') are used as is (they contain FAT
+     and root directory), then one sector from image is skipped
+     ('skip1s'), and finally the rest of image is used as is (implicit)
+
 'precmd'
      On some variants of Solaris, it is necessary to call 'volcheck -v'
      before opening a floppy device, in order for the system to notice
@@ -2454,12 +2482,12 @@ Concept index
 * Bad blocks:                            mbadblocks.           (line  6)
 * bigger sectors:                        bigger sectors.       (line  6)
 * blocksize:                             miscellaneous variables.
-                                                               (line 32)
+                                                               (line 60)
 * bugs:                                  Location.             (line  6)
 * Case sensitivity:                      case sensitivity.     (line  6)
 * Changing file attributes:              mattrib.              (line  6)
 * character devices:                     miscellaneous variables.
-                                                               (line 32)
+                                                               (line 60)
 * Checking configuration file:           mtoolstest.           (line  6)
 * Clusters of a file:                    mshowfat.             (line  6)
 * Command list:                          Commands.             (line  6)
@@ -2516,7 +2544,7 @@ Concept index
 * erasing MS-DOS files:                  mdel.                 (line  6)
 * exclusive access to a drive:           open flags.           (line  6)
 * Executing commands before opening the device: miscellaneous variables.
-                                                               (line 26)
+                                                               (line 54)
 * Fat:                                   mshowfat.             (line  6)
 * fdformat:                              more sectors.         (line  6)
 * File name of device node:              location information. (line 10)
@@ -2622,7 +2650,7 @@ Concept index
 * Primary file name (name clashes):      name clashes.         (line  6)
 * Ram disk:                              location information. (line 28)
 * raw device:                            miscellaneous variables.
-                                                               (line 32)
+                                                               (line 60)
 * Read errors:                           mbadblocks.           (line  6)
 * Read-only files (changing the attribute): mattrib.           (line  6)
 * Read-only files (listing them):        mdir.                 (line  6)
@@ -2648,7 +2676,7 @@ Concept index
 * Solaris (Raw access to SCSI devices such as Zip & Jaz): miscellaneous flags.
                                                                (line 17)
 * Solaris (volcheck):                    miscellaneous variables.
-                                                               (line 26)
+                                                               (line 54)
 * Solaris (vold):                        miscellaneous flags.  (line 57)
 * Space occupied by directories and files: mdu.                (line  6)
 * Special formats:                       high capacity formats.
@@ -2695,71 +2723,71 @@ Concept index
 
 
 Tag Table:
-Node: Top869
-Node: Location3123
-Node: Common features4061
-Node: arguments4825
-Node: drive letters6486
-Node: directory7840
-Node: long names8286
-Node: name clashes10832
-Node: case sensitivity13116
-Node: high capacity formats14353
-Node: more sectors15398
-Node: bigger sectors16453
-Node: 2m17182
-Node: XDF18368
-Node: exit codes19711
-Node: bugs20349
-Node: Configuration20882
-Node: configuration file location22171
-Node: general syntax22624
-Node: default values23455
-Node: global variables23983
-Node: per drive variables26176
-Node: general information27011
-Node: location information27453
-Node: geometry description28982
-Node: open flags32843
-Node: miscellaneous variables33443
-Node: miscellaneous flags35519
-Node: multiple descriptions39149
-Node: parsing order40823
-Node: old style configuration41854
-Node: Commands42553
-Node: floppyd44475
-Node: floppyd_installtest49268
-Node: mattrib49899
-Node: mbadblocks51694
-Node: mcat52988
-Node: mcd53802
-Node: mclasserase54663
-Node: mcopy55339
-Node: mdel58357
-Node: mdeltree58696
-Node: mdir59115
-Node: mdu60391
-Node: mformat60897
-Node: mkmanifest69408
-Node: minfo71382
-Node: mlabel71952
-Node: mmd73105
-Node: mmount73454
-Node: mmove74057
-Node: mpartition74862
-Node: mrd80388
-Node: mren80746
-Node: mshortname81495
-Node: mshowfat81825
-Node: mtoolstest82234
-Node: mtype82806
-Node: mzip83657
-Ref: mzip-Footnote-185682
-Ref: mzip-Footnote-285763
-Node: Compiling mtools86050
-Node: Porting mtools87149
-Node: Command Index93057
-Node: Variable Index93185
-Node: Concept Index95008
+Node: Top867
+Node: Location3119
+Node: Common features4057
+Node: arguments4821
+Node: drive letters6482
+Node: directory7836
+Node: long names8282
+Node: name clashes10828
+Node: case sensitivity13112
+Node: high capacity formats14349
+Node: more sectors15394
+Node: bigger sectors16449
+Node: 2m17178
+Node: XDF18364
+Node: exit codes19707
+Node: bugs20345
+Node: Configuration20878
+Node: configuration file location22167
+Node: general syntax22620
+Node: default values23451
+Node: global variables23979
+Node: per drive variables26172
+Node: general information27007
+Node: location information27449
+Node: geometry description28978
+Node: open flags32839
+Node: miscellaneous variables33439
+Node: miscellaneous flags37029
+Node: multiple descriptions40659
+Node: parsing order42333
+Node: old style configuration43364
+Node: Commands44063
+Node: floppyd45985
+Node: floppyd_installtest50778
+Node: mattrib51409
+Node: mbadblocks53204
+Node: mcat54498
+Node: mcd55312
+Node: mclasserase56173
+Node: mcopy56849
+Node: mdel59867
+Node: mdeltree60206
+Node: mdir60625
+Node: mdu61901
+Node: mformat62407
+Node: mkmanifest70918
+Node: minfo72892
+Node: mlabel73462
+Node: mmd74615
+Node: mmount74964
+Node: mmove75567
+Node: mpartition76372
+Node: mrd81898
+Node: mren82256
+Node: mshortname83005
+Node: mshowfat83335
+Node: mtoolstest83744
+Node: mtype84316
+Node: mzip85167
+Ref: mzip-Footnote-187192
+Ref: mzip-Footnote-287273
+Node: Compiling mtools87560
+Node: Porting mtools88659
+Node: Command Index94567
+Node: Variable Index94695
+Node: Concept Index96518
 
 End Tag Table

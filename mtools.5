@@ -1,5 +1,5 @@
 '\" t
-.TH mtools 5 "28Nov20" MTOOLS MTOOLS
+.TH mtools 5 "30May21" MTOOLS MTOOLS
 .SH Name
 mtools.conf - mtools configuration files
 '\" t
@@ -13,12 +13,12 @@ mtools.conf - mtools configuration files
 .tr \(if`
 .tr \(pd"
 
-.ds St Mtools\ 4.0.26
+.ds St Mtools\ 4.0.28
 .PP
 .SH Description
 .PP
 This manual page describes the configuration files for mtools. They 
-are called \fR\&\f(CW\(if/usr/local/etc/mtools.conf\(is\fR and \fR\&\f(CW\(if~/.mtoolsrc\(is\fR. If
+are called \fR\&\f(CW\(if/etc/mtools.conf\(is\fR and \fR\&\f(CW\(if~/.mtoolsrc\(is\fR. If
 the environmental variable \fR\&\f(CWMTOOLSRC\fR is set, its contents is used
 as the filename for a third configuration file. These configuration
 files describe the following items:
@@ -30,7 +30,7 @@ files describe the following items:
 .SS Location\ of\ the\ configuration\ files
 .PP
 .PP
-\&\fR\&\f(CW\(if/usr/local/etc/mtools.conf\(is\fR is the system-wide configuration file,
+\&\fR\&\f(CW\(if/etc/mtools.conf\(is\fR is the system-wide configuration file,
 and \fR\&\f(CW\(if~/.mtoolsrc\(is\fR is the user's private configuration file.
 .PP
 On some systems, the system-wide configuration file is called
@@ -339,6 +339,34 @@ for all drives by using the global \fR\&\f(CWdefault_codepage\fR parameter
 (outside of any drive description). This parameters exists starting at
 version 4.0.0
 .TP
+\&\fR\&\f(CWdata_map\fR\ 
+Remaps data from image file. This is useful for image files which
+might need additional zero-filled sectors to be inserted. Such is the
+case for instance for IBM 3174 floppy images. These images represent
+floppy disks with fewer sectors on their first cylinder. These missing
+sectors are not stored in the image, but are still counted in the
+filesystem layout. The data_map allows to fake these missing sectors
+for the upper layers of mtools. A data_map is a comma-separated
+sequence of source type and size. Source type may be \fR\&\f(CWzero\fR for
+zero-filled sectors created by map, \fR\&\f(CWskip\fR for data in raw image
+to be ignored (skipped), and nothing for data to be used as is
+(copied) from the raw image. Datamap is automatically complemented by
+an implicit last element of data to be used as is from current offset
+to end of file. Each size is a number followed by a unit: \fR\&\f(CWs\fR for
+a 512 byte sector, \fR\&\f(CWK\fR for Kbytes, \fR\&\f(CWM\fR for megabytes,
+\&\fR\&\f(CWG\fR for gigabytes, and nothing for single bytes.
+.IP
+Example:
+.IP
+\&\fR\&\f(CWdata_map=1s,zero31s,28s,skip1s\fR would be a map for use with IBM
+3174 floppy images. First sector (\fR\&\f(CW1s\fR, boot sector) is used as
+is. Then follow 31 fake zero-filled sectors (\fR\&\f(CWzero31s\fR), then the
+next 28 sectors from image (\fR\&\f(CW28s\fR) are used as is (they contain
+FAT and root directory), then one sector from image is skipped
+(\fR\&\f(CWskip1s\fR), and finally the rest of image is used as is
+(implicit)
+.IP
+.TP
 \&\fR\&\f(CWprecmd\fR\ 
 On some variants of Solaris, it is necessary to call 'volcheck -v'
 before opening a floppy device, in order for the system to notice that
@@ -388,14 +416,14 @@ implied, unless explicitly disabled by \fR\&\f(CWprivileged=0\fR
 Mtools uses its root privileges to open the device, and to issue the
 actual SCSI I/O calls.  Moreover, root privileges are only used for
 drives described in a system-wide configuration file such as
-\&\fR\&\f(CW\(if/usr/local/etc/mtools.conf\(is\fR, and not for those described in
+\&\fR\&\f(CW\(if/etc/mtools.conf\(is\fR, and not for those described in
 \&\fR\&\f(CW\(if~/.mtoolsrc\(is\fR or \fR\&\f(CW\(if$MTOOLSRC\(is\fR.  
 .TP
 \&\fR\&\f(CWprivileged\fR\ 
 When set to 1, this instructs mtools to use its setuid and setgid
 privileges for opening the given drive.  This option is only valid for
 drives described in the system-wide configuration files (such as
-\&\fR\&\f(CW\(if/usr/local/etc/mtools.conf\(is\fR, not \fR\&\f(CW\(if~/.mtoolsrc\(is\fR or
+\&\fR\&\f(CW\(if/etc/mtools.conf\(is\fR, not \fR\&\f(CW\(if~/.mtoolsrc\(is\fR or
 \&\fR\&\f(CW\(if$MTOOLSRC\(is\fR).  Obviously, this option is also a no op if mtools is
 not installed setuid or setgid.  This option is implied by 'scsi=1', but
 again only for drives defined in system-wide configuration files.
@@ -507,7 +535,7 @@ The configuration files are parsed in the following order:
 compiled-in defaults
 .TP
 2.\ 
-\&\fR\&\f(CW\(if/usr/local/etc/mtools.conf\(is\fR
+\&\fR\&\f(CW\(if/etc/mtools.conf\(is\fR
 .TP
 3.\ 
 \&\fR\&\f(CW\(if~/.mtoolsrc\(is\fR.
@@ -519,10 +547,10 @@ variable)
 Options described in the later files override those described in the
 earlier files. Drives defined in earlier files persist if they are not
 overridden in the later files. For instance, drives A and B may be
-defined in \fR\&\f(CW\(if/usr/local/etc/mtools.conf\(is\fR and drives C and D may be
+defined in \fR\&\f(CW\(if/etc/mtools.conf\(is\fR and drives C and D may be
 defined in \fR\&\f(CW\(if~/.mtoolsrc\(is\fR However, if \fR\&\f(CW\(if~/.mtoolsrc\(is\fR also
 defines drive A, this new description would override the description of
-drive A in \fR\&\f(CW\(if/usr/local/etc/mtools.conf\(is\fR instead of adding to it. If
+drive A in \fR\&\f(CW\(if/etc/mtools.conf\(is\fR instead of adding to it. If
 you want to add a new description to a drive already described in an
 earlier file, you need to use either the \fR\&\f(CW+drive\fR or \fR\&\f(CWdrive+\fR
 keyword.

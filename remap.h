@@ -1,4 +1,7 @@
-/*  Copyright 1999-2009 Alain Knaff.
+#ifndef MTOOLS_REMAP_H
+#define MTOOLS_REMAP_H
+
+/*  Copyright 2021 Alain Knaff.
  *  This file is part of mtools.
  *
  *  Mtools is free software: you can redistribute it and/or modify
@@ -15,13 +18,8 @@
  *  along with Mtools.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sysincludes.h"
-#include "msdos.h"
+#include "stream.h"
 
-const char *mversion="4.0.28";
+Stream_t *Remap(Stream_t *Next, const char *map, char *errmsg);
+#endif
 
-/* Multiple releases on same day should be marked with (b), (cd), (d) after
- * date string below */
-const char *mdate = "May 30th, 2021";
-
-const char *mformat_banner = "MTOO4028";
