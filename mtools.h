@@ -78,6 +78,13 @@ typedef struct device {
 
 	const char *data_map;
 
+	uint32_t tot_sectors;	/* Amount of total sectors, more
+				 * precise than tracks (in case of
+				 * partitions which may take up parts
+				 * of a track) */
+
+	uint32_t sector_size; /* Non-default sector size */
+	
 	const char *cfg_filename; /* used for debugging purposes */
 } device_t;
 
@@ -122,15 +129,6 @@ extern const char *short_illegals, *long_illegals;
   } \
 } while(0)
 
-#define smaximize(target, max) do {		\
-  if(max < 0) { \
-    if(target > 0) \
-      target = 0; \
-  } else if(target > max) { \
-    target = max; \
-  } \
-} while(0)
-
 #define sizemaximize(target, max) do {		\
   if(max < 0) { \
     if(target > 0) \
@@ -145,6 +143,9 @@ extern const char *short_illegals, *long_illegals;
     target = min; \
 } while(0) 
 
+#ifdef OS_linux
+int get_sector_size(int fd);
+#endif
 int init_geom(int fd, struct device *dev, struct device *orig_dev,
 	      struct MT_STAT *statbuf);
 

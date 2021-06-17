@@ -93,14 +93,15 @@ typedef struct Xdf_t {
 	int fd;
 	char *buffer;
 	
-	int current_track;
+	bool track_valid;
+	uint8_t current_track;
 	
 	sector_map_t *map;
 
-	int track_size;
+	uint32_t track_size;
 	int track0_size;
-	int sector_size;
-	unsigned int FatSize;
+	uint16_t sector_size;
+	uint8_t FatSize;
 	uint16_t RootDirSize;
 	TrackMap_t *track_map;
 
@@ -178,23 +179,23 @@ static int send_cmd(int fd, RawRequest_t *raw_cmd, int nr,
 #define END(x) (This->track_map[(x)].end)
 #define BEGIN(x) (This->track_map[(x)].begin)
 
-static int add_to_request(Xdf_t *This, int ptr,
+static int add_to_request(Xdf_t *This, unsigned char ptr,
 			  RawRequest_t *request, int *nr,
 			  int direction, Compactify_t *compactify)
 {
 #if 0
 	if(direction == MT_WRITE) {
-		printf("writing %d: %d %d %d %d [%02x]\n", 
+		printf("writing %d: %u %d %d %d [%02x]\n", 
 		       ptr, This->current_track,
 		       REC.head, REC.sector, REC.sizecode,
 		       *(This->buffer + ptr * This->sector_size));
 	} else
-			printf(" load %d.%d\n", This->current_track, ptr);
+			printf(" load %d.%u\n", This->current_track, ptr);
 #endif
 	if(REC.phantom) {
 		if(direction== MT_READ)			
 			memset(This->buffer + ptr * This->sector_size, 0,
-			       128 << REC.sizecode);
+			       128u << REC.sizecode);
 		return 0;
 	}
 	
@@ -228,7 +229,7 @@ static int add_to_request(Xdf_t *This, int ptr,
 }
 
 
-static void add_to_request_if_invalid(Xdf_t *This, int ptr,
+static void add_to_request_if_invalid(Xdf_t *This, unsigned char ptr,
 				     RawRequest_t *request, int *nr,
 				     Compactify_t *compactify)
 {
@@ -238,21 +239,23 @@ static void add_to_request_if_invalid(Xdf_t *This, int ptr,
 }
 
 
-static void adjust_bounds(Xdf_t *This, off_t *begin, off_t *end)
+static void adjust_bounds(Xdf_t *This, off_t ibegin, off_t iend,
+			  uint8_t *begin, uint8_t *end)
 {
 	/* translates begin and end from byte to sectors */
-	*begin = *begin / This->sector_size;
-	*end = (*end + This->sector_size - 1) / This->sector_size;
+	*begin = (uint8_t) (ibegin / This->sector_size);
+	*end = (uint8_t) ((iend + This->sector_size - 1) / This->sector_size);
 }
 
 
 static __inline__ int try_flush_dirty(Xdf_t *This)
 {
-	int ptr, nr, bytes;
+	unsigned char ptr;
+	int nr, bytes;
 	RawRequest_t requests[100];
 	Compactify_t compactify;
 
-	if(This->current_track < 0)
+	if(!This->track_valid)
 		return 0;
 	
 	nr = 0;
@@ -293,13 +296,15 @@ static int flush_dirty(Xdf_t *This)
 }
 
 
-static int load_data(Xdf_t *This, off_t begin, off_t end, int retries)
+static ssize_t load_data(Xdf_t *This, off_t ibegin, off_t iend,
+			 int retries)
 {
-	int ptr, nr, bytes;
+	unsigned char ptr;
+	int nr, bytes;
 	RawRequest_t requests[100];
 	Compactify_t compactify;
-
-	adjust_bounds(This, &begin, &end);
+	unsigned char begin, end;
+	adjust_bounds(This, ibegin, iend, &begin, &end);
 	
 	ptr = begin;
 	nr = 0;
@@ -324,11 +329,12 @@ static int load_data(Xdf_t *This, off_t begin, off_t end, int retries)
 	return end * This->sector_size;
 }
 
-static void mark_dirty(Xdf_t *This, off_t begin, off_t end)
+static void mark_dirty(Xdf_t *This, off_t ibegin, off_t iend)
 {
 	int ptr;
-
-	adjust_bounds(This, &begin, &end);
+	unsigned char begin, end;
+	
+	adjust_bounds(This, ibegin, iend, &begin, &end);
 	
 	ptr = begin;
 	for(ptr=REC.begin; ptr < end ; ptr = REC.end) {
@@ -339,15 +345,11 @@ static void mark_dirty(Xdf_t *This, off_t begin, off_t end)
 }
 
 
-static int load_bounds(Xdf_t *This, off_t begin, off_t end)
+static ssize_t load_bounds(Xdf_t *This, off_t begin, off_t end)
 {
-	off_t lbegin, lend;
-	int endp1, endp2;
+	unsigned char lbegin, lend;
 
-	lbegin = begin;
-	lend = end;
-
-	adjust_bounds(This, &lbegin, &lend);	
+	adjust_bounds(This, begin, end, &lbegin, &lend);	
 
 	if(begin != BEGIN(lbegin) * This->sector_size &&
 	   end != BEGIN(lend) * This->sector_size &&
@@ -356,22 +358,42 @@ static int load_bounds(Xdf_t *This, off_t begin, off_t end)
 		return load_data(This, begin, end, 4);
 
 	if(begin != BEGIN(lbegin) * This->sector_size) {
-		endp1 = load_data(This, begin, begin, 4);
-		if(endp1 < 0)
-			return endp1;
+		ssize_t ret = load_data(This, begin, begin, 4);
+		if(ret < 0)
+			return ret;
 	}
 
 	if(end != BEGIN(lend) * This->sector_size) {
-		endp2 = load_data(This, end, end, 4);
-		if(endp2 < 0)
+		ssize_t ret = load_data(This, end, end, 4);
+		if(ret < 0)
 			return BEGIN(lend) * This->sector_size;
 	}
 	return lend * This->sector_size;
 }
 
+/* Fill out a map that is just sufficient to read boot sector */
+static void fill_boot(Xdf_t *This)
+{
+	uint8_t ptr=0;
 
-static int fill_t0(Xdf_t *This, int ptr, unsigned int size,
-		   int *sector, int *head)
+	REC.head = 0;
+	REC.sector = 129;
+	REC.phantom = 0;
+	
+	REC.begin = ptr;
+	REC.end = ptr+1;
+			
+	REC.sizecode = 2;
+			
+	REC.valid = 0;
+	REC.dirty = 0;
+	This->last_sector=1;
+	This->current_track=0;
+}
+
+
+static uint8_t fill_t0(Xdf_t *This, uint8_t ptr, unsigned int size,
+		       uint8_t *sector, uint8_t *head)
 {
 	unsigned int n;
 
@@ -389,7 +411,7 @@ static int fill_t0(Xdf_t *This, int ptr, unsigned int size,
 }
 
 
-static int fill_phantoms(Xdf_t *This, int ptr, unsigned int size)
+static uint8_t fill_phantoms(Xdf_t *This, uint8_t ptr, uint8_t size)
 {
 	unsigned int n;
 
@@ -398,31 +420,39 @@ static int fill_phantoms(Xdf_t *This, int ptr, unsigned int size)
 	return ptr;
 }
 
-static void decompose(Xdf_t *This, int where, int len, off_t *begin, 
-					  off_t *end, int boot)
+static int decompose(Xdf_t *This, mt_off_t iwhere, size_t len,
+		     uint32_t *begin, uint32_t *end, uint8_t boot)
 {
-	int ptr, track;
+	uint8_t ptr;
 	sector_map_t *map;
-	int lbegin, lend;
+	uint8_t lbegin, lend;
+	uint32_t track_size = This->track_size * 1024;
 	
-	track = where / This->track_size / 1024;
+	mt_off_t track = iwhere / track_size;
+	uint32_t where = iwhere % track_size;
 	
-	*begin = where - track * This->track_size * 1024;
-	*end = where + len - track * This->track_size * 1024;
-	maximize(*end, This->track_size * 1024);
+	*begin = where;
+	if(where + len > track_size)
+		*end = track_size;
+	else
+		*end = (uint32_t) (where + len);
 
 	if(This->current_track == track && !boot)
 		/* already OK, return immediately */
-		return;
+		return 0;
 	if(!boot)
 		flush_dirty(This);
-	This->current_track = track;
+	if(track >= 80)
+		return -1;
+	This->current_track = (uint8_t) track;
+	This->track_valid = true;
 
 	if(track) {
 		for(ptr=0, map=This->map; map->size; map++) {
 			/* iterate through all sectors */
 			lbegin = ptr;
-			lend = ptr + (128 << map->size) / This->sector_size;
+			lend = ptr +
+				(uint8_t) ((128u<<map->size)/This->sector_size);
 			for( ; ptr < lend ; ptr++) {
 				REC.begin = lbegin;
 				REC.end = lend;
@@ -438,7 +468,7 @@ static void decompose(Xdf_t *This, int where, int len, off_t *begin,
 		}
 		REC.begin = REC.end = ptr;
 	} else {
-		int sector, head;
+		uint8_t sector, head;
 
 		head = 0;
 		sector = 0;
@@ -475,39 +505,49 @@ static void decompose(Xdf_t *This, int where, int len, off_t *begin,
 			      &sector, &head);
 	}
 	This->last_sector = ptr;
+	return 0;
 }
 
 
-static ssize_t xdf_read(Stream_t *Stream, char *buf, mt_off_t where, size_t len)
+static ssize_t xdf_read(Stream_t *Stream, char *buf,
+			mt_off_t where, size_t len)
 {	
-	off_t begin, end;
-	size_t len2;
+	uint32_t begin, end;
+	ssize_t ret;
 	DeclareThis(Xdf_t);
 
-	decompose(This, truncBytes32(where), len, &begin, &end, 0);
-	len2 = load_data(This, begin, end, 4);
-	len2 -= begin;
-	maximize(len, len2);
+	if(decompose(This, truncBytes32(where), len, &begin, &end, 0) < 0)
+		/* Read beyond end of device */
+		return 0;
+	ret = load_data(This, begin, end, 4);
+	if(ret < 0 || (size_t) ret < begin)
+		return -1;
+	maximize(len, (size_t) ret - begin);
 	memcpy(buf, This->buffer + begin, len);
-	return end - begin;
+	return (ssize_t) (end - begin);
 }
 
 static ssize_t xdf_write(Stream_t *Stream, char *buf, mt_off_t where, size_t len)
 {	
-	off_t begin, end;
+	uint32_t begin, end;
 	ssize_t len2;
 	DeclareThis(Xdf_t);
 
-	decompose(This, truncBytes32(where), len, &begin, &end, 0);
+	if(decompose(This, truncBytes32(where), len, &begin, &end, 0) < 0) {
+		/* Write beyond end of device */
+		errno = EFBIG;
+		return -1;
+	}
+
 	len2 = load_bounds(This, begin, end);
 	if(len2 < 0)
-		return len2;
-	smaximize(end, (off_t)len2);
+		return -1;
+	maximize(end, (uint32_t)len2);
 	len2 -= begin;
-	sizemaximize(len, len2);
+	maximize(len, (size_t) len2);
 	memcpy(This->buffer + begin, buf, len);
 	mark_dirty(This, begin, end);
-	return end - begin;
+	return (ssize_t) (end - begin);
 }
 
 static int xdf_flush(Stream_t *Stream)
@@ -526,12 +566,9 @@ static int xdf_free(Stream_t *Stream)
 }
 
 
-static int check_geom(struct device *dev, int media, union bootsector *boot)
+static int check_geom(Xdf_t *This, struct device *dev)
 {
-	int sect;
-
-	if(media >= 0xfc && media <= 0xff)
-		return 1; /* old DOS */
+	unsigned int sect;
 
 	if (!IS_MFORMAT_ONLY(dev)) {
 	    if(compare(dev->sectors, 19) &&
@@ -547,36 +584,32 @@ static int check_geom(struct device *dev, int media, union bootsector *boot)
 	}
 
 	/* check against info from boot */
-	if(boot) {
-		sect = WORD(nsect);
+	if(This) {
+		sect = This->track_size;
 		if((sect != 19 && sect != 23 && sect != 24 &&
 		    sect != 46 && sect != 48) ||
-		   (!IS_MFORMAT_ONLY(dev) && compare(dev->sectors, sect)) || 
-		   WORD(nheads) !=2)
-		    return 1;
+		   (!IS_MFORMAT_ONLY(dev) && compare(dev->sectors, sect)))
+			return 1;
 	}
 	return 0;
 }
 
-static void set_geom(union bootsector *boot, struct device *dev)
+static void set_geom(Xdf_t *This, struct device *dev)
 {
 	/* fill in config info to be returned to user */
 	dev->heads = 2;
 	dev->use_2m = 0xff;
-	if(boot) {
-		dev->sectors = WORD(nsect);
-		if(WORD(psect))
-			dev->tracks = WORD(psect) / dev->sectors / 2;
-	}
+	dev->sectors = (uint16_t) This->track_size;
+	dev->tracks = 80;
 }
 
 static int config_geom(Stream_t *Stream UNUSEDP, struct device *dev, 
-		       struct device *orig_dev UNUSEDP, int media,
-		       union bootsector *boot)
+		       struct device *orig_dev UNUSEDP)
 {
-	if(check_geom(dev, media, boot))
+	DeclareThis(Xdf_t);
+	if(check_geom(This, dev))
 		return 1;
-	set_geom(boot,dev);
+	set_geom(This, dev);
 	return 0;
 }
 
@@ -592,15 +625,17 @@ static Class_t XdfClass = {
 	0 /* discard */
 };
 
-Stream_t *XdfOpen(struct device *dev, char *name,
+Stream_t *XdfOpen(struct device *dev, const char *name,
 		  int mode, char *errmsg, struct xdf_info *info)
 {
 	Xdf_t *This;
-	off_t begin, end;
+	uint32_t begin, end;
 	union bootsector *boot;
 	unsigned int type;
-
-	if(dev && (!SHOULD_USE_XDF(dev) || check_geom(dev, 0, 0)))
+	uint16_t fatSize;
+	
+	if(dev && ((!SHOULD_USE_XDF(dev) && !getenv("MTOOLS_USE_XDF")) ||
+		   check_geom(NULL, dev)))
 		return NULL;
 
 	This = New(Xdf_t);
@@ -612,7 +647,9 @@ Stream_t *XdfOpen(struct device *dev, char *name,
 	This->stretch = 0;
 
 	precmd(dev);
-	This->fd = open(name, mode | dev->mode | O_EXCL | O_NDELAY);
+	This->fd = open(name,
+			((mode | dev->mode) & ~O_ACCMODE) |
+			O_EXCL | O_NDELAY | O_RDWR);
 	if(This->fd < 0) {
 #ifdef HAVE_SNPRINTF
 		snprintf(errmsg,199,"xdf floppy: open: \"%s\"", strerror(errno));
@@ -632,7 +669,7 @@ Stream_t *XdfOpen(struct device *dev, char *name,
 	if (!This->buffer)
 		goto exit_1;
 
-	This->current_track = -1;
+	This->track_valid = false;
 	This->track_map = (TrackMap_t *)
 		calloc(96, sizeof(TrackMap_t));
 	if(!This->track_map)
@@ -651,13 +688,9 @@ Stream_t *XdfOpen(struct device *dev, char *name,
 	}
 
 	/* Before reading the boot sector, assume dummy values suitable
-	 * for reading at least the boot sector */
-	This->track_size = 11;
-	This->track0_size = 6;
+	 * for reading just the boot sector */
+	fill_boot(This);
 	This->rate = 0;
-	This->FatSize = 9;
-	This->RootDirSize = 1;
-	decompose(This, 0, 512, &begin, &end, 0);
 	if (load_data(This, 0, 1, 1) < 0 ) {
 		This->rate = 0x43;
 		if(load_data(This, 0, 1, 1) < 0)
@@ -665,7 +698,13 @@ Stream_t *XdfOpen(struct device *dev, char *name,
 	}
 
 	boot = (union bootsector *) This->buffer;
-	This->FatSize = WORD(fatlen);
+
+	fatSize = WORD(fatlen);
+	if(fatSize > UINT8_MAX) {
+		fprintf(stderr, "Fat size %d too large\n", fatSize);
+		exit(1);
+	}
+	This->FatSize = (uint8_t) fatSize;
 	This->RootDirSize = WORD(dirents)/16;
 	This->track_size = WORD(nsect);
 	for(type=0; type < NUMBER(xdf_table); type++) {
@@ -691,7 +730,7 @@ Stream_t *XdfOpen(struct device *dev, char *name,
 	This->Next = 0;
 	This->Buffer = 0;
 	if(dev)
-		set_geom(boot, dev);
+		set_geom(This, dev);
 	return (Stream_t *) This;
 
 exit_3:

@@ -14,7 +14,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Mtools.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Buffer read/write module
+ * Remapping shim
  */
 
 #include "sysincludes.h"
@@ -43,6 +43,8 @@ typedef struct Remap_t {
 
 	struct map *map;
 	int mapSize;
+
+	mt_off_t net_offset;
 } Remap_t;
 
 static enum map_type_t remap(Remap_t *This, mt_off_t *start, size_t *len) {
@@ -80,10 +82,10 @@ static ssize_t remap_write(Stream_t *Stream, char *buf,
 	DeclareThis(Remap_t);	
 	if(remap(This, &start, &len)==DATA)
 		return WRITES(This->Next, buf, start, len);
-	else {
-		errno=EFAULT;
-		return -1;
-	}
+	else
+		/* Ignore writes to zero zones rather than erroring,
+		 * because this might happen while flushing a buffer */
+		return (ssize_t) len;
 }
 
 static int remap_free(Stream_t *Stream)
@@ -166,14 +168,16 @@ static int process_map(Remap_t *This, const char *ptr,
 		}
 		
 	}
+	This->net_offset = orig-remapped;
 	return count;
 }
 
 
-Stream_t *Remap(Stream_t *Next, const char *map, char *errmsg) {
+Stream_t *Remap(Stream_t *Next, struct device *dev, char *errmsg) {
 	Remap_t *This;
 	int nrItems=0;
-
+	const char *map = dev->data_map;
+	
 	This = New(Remap_t);
 	if (!This){
 		printOom();
@@ -181,6 +185,7 @@ Stream_t *Remap(Stream_t *Next, const char *map, char *errmsg) {
 	}
 	memset((void*)This, 0, sizeof(Remap_t));
 	This->Class = &RemapClass;
+	This->refs = 1;
 	This->Next = Next;
 	
 	/* First count number of items */
@@ -192,12 +197,21 @@ Stream_t *Remap(Stream_t *Next, const char *map, char *errmsg) {
 	
 	This->map = calloc((size_t)nrItems+1, sizeof(struct map));
 	if(!This->map) {
-		free(This);
 		printOom();
-		return NULL;
+		goto exit_0;
 	}
 
 	process_map(This, map, 0, errmsg);
+
+	if(adjust_tot_sectors(dev, This->net_offset, errmsg) < 0)
+		goto exit_1;
+	
 	This->mapSize=nrItems-1;
 	return (Stream_t *) This;
+ exit_1:
+	free(This->map);
+ exit_0:
+	free(This);
+	printOom();
+	return NULL;	
 }

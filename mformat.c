@@ -33,11 +33,11 @@
 #ifdef HAVE_ASSERT_H
 #include <assert.h>
 #endif
-#ifdef USE_XDF
-#include "xdf_io.h"
-#endif
+#include "stream.h"
 #include "partition.h"
+#include "open_image.h"
 #include "file_name.h"
+#include "lba.h"
 
 #ifndef abs
 #define abs(x) ((x)>0?(x):-(x))
@@ -63,15 +63,6 @@ static uint32_t mt_off_t_to_sectors(mt_off_t raw_sect) {
 	return (uint32_t) raw_sect;
 }
 
-static uint32_t ulong_to_sectors(unsigned long raw_sect) {
-	/* Number of sectors must fit into 32bit value */
-	if (raw_sect > ULONG_MAX) {
-		fprintf(stderr, "Too many sectors for FAT %8lx\n",raw_sect);
-		exit(1);
-	}
-	return (uint32_t) raw_sect;
-}
-
 
 static uint16_t init_geometry_boot(union bootsector *boot, struct device *dev,
 				   uint8_t sectors0,
@@ -89,12 +80,14 @@ static uint16_t init_geometry_boot(union bootsector *boot, struct device *dev,
 	assert(*tot_sectors != 0);
 #endif
 
-	if (*tot_sectors <= UINT16_MAX){
+	if (*tot_sectors <= UINT16_MAX && dev->hidden <= UINT16_MAX){
 		set_word(boot->boot.psect, (uint16_t) *tot_sectors);
 		set_dword(boot->boot.bigsect, 0);
+		set_word(boot->boot.nhs, (uint16_t) dev->hidden);
 	} else if(*tot_sectors <= UINT32_MAX){
 		set_word(boot->boot.psect, 0);
 		set_dword(boot->boot.bigsect, (uint32_t) *tot_sectors);
+		set_dword(boot->boot.nhs, dev->hidden);
 	} else {
 		fprintf(stderr, "Too many sectors %u\n", *tot_sectors);
 		exit(1);
@@ -756,165 +749,6 @@ static void usage(int ret)
 	exit(ret);
 }
 
-static uint32_t ulongToSectors(unsigned long r_sectors) {
-	if(r_sectors > UINT32_MAX) {
-		fprintf(stderr, "Too many sectors %ld\n", r_sectors);
-	}
-	return (uint32_t) r_sectors;
-}
-
-#ifdef OS_linux
-static int get_sector_size(int fd, char *errmsg) {
-	int sec_size;
-	if (ioctl(fd, BLKSSZGET, &sec_size) != 0 || sec_size <= 0) {
-		sprintf(errmsg, "Could not get sector size of device (%s)",
-			strerror(errno));
-		return -1;
-	}
-
-	/* Cap sector size at 4096 */
-	if(sec_size > 4096)
-		sec_size = 4096;
-	return sec_size;
-}
-
-static int get_block_geom(int fd, struct device *dev, char *errmsg) {
-	struct hd_geometry geom;
-	int sec_size;
-	unsigned long size;
-	uint16_t heads=dev->heads;
-	uint16_t sectors=dev->sectors;
-	uint32_t sect_per_track;
-
-	if (ioctl(fd, HDIO_GETGEO, &geom) < 0) {
-		sprintf(errmsg, "Could not get geometry of device (%s)",
-			strerror(errno));
-		return -1;
-	}
-
-	if (ioctl(fd, BLKGETSIZE, &size) < 0) {
-		sprintf(errmsg, "Could not get size of device (%s)",
-			strerror(errno));
-		return -1;
-	}
-
-	sec_size = get_sector_size(fd, errmsg);
-	if(sec_size < 0)
-		return -1;
-	
-	dev->ssize = 0;
-	while (dev->ssize < 0x7F && (128 << dev->ssize) < sec_size)
-		dev->ssize++;
-
-	if(!heads)
-		heads = geom.heads;
-	if(!sectors)
-		sectors = geom.sectors;
-
-	sect_per_track = heads * sectors;
-	if(!dev->hidden) {
-		uint32_t hidden;
-		hidden = geom.start % sect_per_track;
-		if(hidden && hidden != sectors) {
-			sprintf(errmsg,
-				"Hidden (%d) does not match sectors (%d)\n",
-				hidden, sectors);
-			return -1;
-		}
-		dev->hidden = hidden;
-	}
-	dev->heads = heads;
-	dev->sectors = sectors;
-	if(!dev->tracks)
-		dev->tracks = ulong_to_sectors((size + dev->hidden % sect_per_track) / sect_per_track);
-	return 0;
-}
-#endif
-
-static int get_lba_geom(Stream_t *Direct, uint32_t tot_sectors, struct device *dev, char *errmsg) {
-	unsigned int sect_per_track;
-	uint32_t tracks;
-
-	/* if one value is already specified we do not want to overwrite it */
-	if (dev->heads || dev->sectors || dev->tracks) {
-		sprintf(errmsg, "Number of heads or sectors or tracks was already specified");
-		return -1;
-	}
-
-	if (!tot_sectors) {
-#ifdef OS_linux
-		int fd;
-		int sec_size;
-		struct MT_STAT stbuf;
-
-		fd = get_fd(Direct);
-		if (MT_FSTAT(fd, &stbuf) < 0) {
-			sprintf(errmsg, "Could not stat file (%s)", strerror(errno));
-			return -1;
-		}
-
-		if (S_ISBLK(stbuf.st_mode)) {
-			unsigned long size;
-			unsigned long r_sectors;
-			if (ioctl(fd, BLKGETSIZE, &size) != 0) {
-				sprintf(errmsg, "Could not get size of device (%s)",
-					strerror(errno));
-				return -1;
-			}
-			sec_size = get_sector_size(fd, errmsg);
-			if(sec_size < 0)
-				return -1;
-
-			if (!(dev->ssize & 0x80)) {
-				dev->ssize = 0;
-				while (dev->ssize < 0x7F && (128 << dev->ssize) < sec_size)
-				dev->ssize++;
-			}
-			if ((dev->ssize & 0x7f) > 2)
-				r_sectors = size >> ((dev->ssize & 0x7f) - 2);
-			else
-				r_sectors = size << (2 - (dev->ssize & 0x7f));
-			tot_sectors = ulongToSectors(r_sectors);
-		} else if (S_ISREG(stbuf.st_mode)) {
-			tot_sectors = mt_off_t_to_sectors(stbuf.st_size >> ((dev->ssize & 0x7f) + 7));
-		} else {
-			sprintf(errmsg, "Could not get size of device (%s)",
-				"No method available");
-			return -1;
-		}
-#else
-		mt_size_t size;
-		GET_DATA(Direct, 0, &size, 0, 0);
-		if (size == 0) {
-			sprintf(errmsg, "Could not get size of device (%s)",
-				"No method available");
-			return -1;
-		}
-		tot_sectors = size >> ((dev->ssize & 0x7f) + 7);
-#endif
-	}
-
-	dev->sectors = 63;
-
-	if (tot_sectors < 16*63*1024)
-		dev->heads = 16;
-	else if (tot_sectors < 32*63*1024)
-		dev->heads = 32;
-	else if (tot_sectors < 64*63*1024)
-		dev->heads = 64;
-	else if (tot_sectors < 128*63*1024)
-		dev->heads = 128;
-	else
-		dev->heads = 255;
-
-	sect_per_track = dev->heads * dev->sectors;
-	tracks = (tot_sectors + dev->hidden % sect_per_track) / sect_per_track;
-
-	dev->tracks = tracks;
-
-	return 0;
-}
-
 void mformat(int argc, char **argv, int dummy UNUSEDP) NORETURN;
 void mformat(int argc, char **argv, int dummy UNUSEDP)
 {
@@ -1241,28 +1075,23 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 #endif
 
 #ifdef USE_XDF
-		if(!format_xdf) {
-#endif
-			Fs.Direct = 0;
-#ifdef USE_FLOPPYD
-			Fs.Direct = FloppydOpen(&used_dev, name,
-						O_RDWR | create,
-						errmsg, &maxSize);
-#endif
-			if(!Fs.Direct) {
-				Fs.Direct = SimpleFileOpen(&used_dev, dev, name,
-							   O_RDWR | create,
-							   errmsg, 0, 1,
-							   &maxSize);
-			}
-#ifdef USE_XDF
-		} else {
+		if(!format_xdf)
 			used_dev.misc_flags |= USE_XDF_FLAG;
-			Fs.Direct = XdfOpen(&used_dev, name, O_RDWR,
-					    errmsg, &info);
-			if(Fs.Direct && !Fs.fat_len)
+#endif
+		if(tot_sectors)
+			used_dev.tot_sectors = tot_sectors;
+		
+		Fs.Direct = OpenImage(&used_dev, dev, name,
+				      O_RDWR|create, errmsg,
+				      ALWAYS_GET_GEOMETRY,
+				      O_RDWR,
+				      &maxSize, NULL, &info);
+
+#ifdef USE_XDF
+		if(Fs.Direct && info.FatSize) {
+			if(!Fs.fat_len)
 				Fs.fat_len = info.FatSize;
-			if(Fs.Direct && !Fs.dir_len)
+			if(!Fs.dir_len)
 				Fs.dir_len = info.RootDirSize;
 		}
 #endif
@@ -1270,50 +1099,9 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 		if (!Fs.Direct)
 			continue;
 
-#ifdef OS_linux
-		if ((!used_dev.tracks || !used_dev.heads || !used_dev.sectors) &&
-			(!IS_SCSI(dev))) {
-			int fd= get_fd(Fs.Direct);
-			struct MT_STAT stbuf;
-
-			if (MT_FSTAT(fd, &stbuf) < 0) {
-				sprintf(errmsg, "Could not stat file (%s)", strerror(errno));
-				continue;
-			}
-
-			if (S_ISBLK(stbuf.st_mode))
-			    /* If the following get_block_geom fails, do not 
-			     * continue to next drive description, but allow
-			     * get_lba_geom to kick in
-			     */
-			    get_block_geom(fd, &used_dev, errmsg);
-		}
-#endif
-
-		if ((!used_dev.tracks && !tot_sectors) ||
-		     !used_dev.heads || !used_dev.sectors){
-			if (get_lba_geom(Fs.Direct, tot_sectors, &used_dev,
-					 errmsg) < 0) {
-				sprintf(errmsg, "%s: "
-					"Complete geometry of the disk "
-					"was not specified, \n"
-					"neither in /etc/mtools.conf nor "
-					"on the command line. \n"
-					"LBA Assist Translation for "
-					"calculating CHS geometry "
-					"of the disk failed.\n", argv[0]);
-				continue;
-			}
-		}
-
-#if 0
-		/* set parameters, if needed */
-		if(SET_GEOM(Fs.Direct, &used_dev, 0xf0, boot)){
-			sprintf(errmsg,"Can't set disk parameters: %s",
-				strerror(errno));
-			continue;
-		}
-#endif
+		if(!tot_sectors)
+			tot_sectors = used_dev.tot_sectors;
+		
 		Fs.sector_size = 512;
 		if( !(used_dev.use_2m & 0x7f)) {
 			Fs.sector_size = (uint16_t) (128u << (used_dev.ssize & 0x7f));
@@ -1339,6 +1127,14 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 		if(blocksize > MAX_SECTOR)
 			blocksize = MAX_SECTOR;
 
+		if((mt_size_t) tot_sectors * blocksize > maxSize) {
+			snprintf(errmsg, sizeof(errmsg)-1,
+				 "Requested size too large\n");
+			FREE(&Fs.Direct);
+			continue;
+		}
+
+
 		/* do a "test" read */
 		if (!create &&
 		    READS(Fs.Direct, &boot.characters, 0, Fs.sector_size) !=
@@ -1352,11 +1148,11 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 				"Error reading from '%s', wrong parameters?",
 				name);
 #endif
+			FREE(&Fs.Direct);
 			continue;
 		}
 		break;
 	}
-
 
 	/* print error msg if needed */
 	if ( dev->drive == 0 ){
@@ -1369,9 +1165,15 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 	if(tot_sectors == 0) {
 		uint32_t sect_per_track = used_dev.heads*used_dev.sectors;
 		mt_off_t rtot_sectors =
-			used_dev.tracks*(mt_off_t)sect_per_track -
-			used_dev.hidden%sect_per_track;
+			used_dev.tracks*(mt_off_t)sect_per_track;
+		if(rtot_sectors > used_dev.hidden%sect_per_track)
+			rtot_sectors -= used_dev.hidden%sect_per_track;
 		tot_sectors = mt_off_t_to_sectors(rtot_sectors);
+	}
+
+	if(tot_sectors == 0) {
+		fprintf(stderr, "Number of sectors not known\n");
+		exit(1);
 	}
 
 	/* create the image file if needed */
@@ -1401,7 +1203,6 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 	}
 	if(!keepBoot && !(used_dev.use_2m & 0x7f))
 		memset(boot.characters, '\0', Fs.sector_size);
-	set_dword(boot.boot.nhs, used_dev.hidden);
 
 	Fs.Next = buf_init(Fs.Direct,
 			   blocksize * used_dev.heads * used_dev.sectors,

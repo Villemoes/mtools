@@ -27,9 +27,8 @@
 #include "stream.h"
 #include "mtools.h"
 #include "msdos.h"
+#include "open_image.h"
 #include "plain_io.h"
-#include "scsi.h"
-#include "partition.h"
 #include "llong.h"
 
 #ifdef HAVE_LINUX_FS_H
@@ -43,16 +42,12 @@ typedef struct SimpleFile_t {
     Stream_t *Buffer;
     struct MT_STAT statbuf;
     int fd;
-    mt_off_t offset;
     mt_off_t lastwhere;
     int seekable;
     int privileged;
 #ifdef OS_hpux
     int size_limited;
 #endif
-    unsigned int scsi_sector_size;
-    void *extra_data; /* extra system dependent information for scsi */
-    int swap; /* do the word swapping */
 } SimpleFile_t;
 
 
@@ -60,25 +55,11 @@ typedef struct SimpleFile_t {
 
 typedef ssize_t (*iofn) (int, void *, size_t);
 
-
-static void swap_buffer(char *buf, size_t len)
-{
-	unsigned int i;
-	for (i=0; i<len; i+=2) {
-		char temp = buf[i];
-		buf[i] = buf[i+1];
-		buf[i+1] = temp;
-	}
-}
-
-
 static ssize_t file_io(Stream_t *Stream, char *buf, mt_off_t where, size_t len,
 		       iofn io)
 {
 	DeclareThis(SimpleFile_t);
 	ssize_t ret;
-
-	where += This->offset;
 
 	if (This->seekable && where != This->lastwhere ){
 		if(mt_lseek( This->fd, where, SEEK_SET) < 0 ){
@@ -123,33 +104,13 @@ static ssize_t file_io(Stream_t *Stream, char *buf, mt_off_t where, size_t len,
 static ssize_t file_read(Stream_t *Stream, char *buf,
 			 mt_off_t where, size_t len)
 {
-	DeclareThis(SimpleFile_t);
-
-	ssize_t result = file_io(Stream, buf, where, len, read);
-
-	if ( This->swap )
-		swap_buffer( buf, len );
-	return result;
+	return file_io(Stream, buf, where, len, read);
 }
 
 static ssize_t file_write(Stream_t *Stream, char *buf,
 			  mt_off_t where, size_t len)
 {
-	DeclareThis(SimpleFile_t);
-
-	if ( !This->swap )
-		return file_io(Stream, buf, where, len, (iofn) write);
-	else {
-		ssize_t result;
-		char *swapping = malloc( len );
-		memcpy( swapping, buf, len );
-		swap_buffer( swapping, len );
-
-		result = file_io(Stream, swapping, where, len, (iofn) write);
-
-		free(swapping);
-		return result;
-	}
+	return file_io(Stream, buf, where, len, (iofn) write);
 }
 
 static int file_flush(Stream_t *Stream UNUSEDP)
@@ -172,89 +133,45 @@ static int file_free(Stream_t *Stream)
 		return 0;
 }
 
+static int init_geom_with_reg(int fd, struct device *dev,
+			      struct device *orig_dev,
+			      struct MT_STAT *statbuf) {
+	if(S_ISREG(statbuf->st_mode)) {
+		/* Regular file (image file) */
+		mt_off_t sectors = statbuf->st_size /
+			(dev->sector_size ? dev->sector_size : 512);
+		dev->tot_sectors =
+			(sectors > (mt_off_t) UINT32_MAX)
+			? UINT32_MAX
+			: (uint32_t) sectors;
+		return 0;
+	} else {
+		/* All the rest (devices, etc.) */
+		return init_geom(fd, dev, orig_dev, statbuf);
+	}
+}
+
 static int file_geom(Stream_t *Stream, struct device *dev, 
-		     struct device *orig_dev,
-		     int media, union bootsector *boot)
+		     struct device *orig_dev)
 {
 	int ret;
 	DeclareThis(SimpleFile_t);
-	uint32_t tot_sectors;
-	int BootP, Infp0, InfpX, InfTm;
-	uint16_t sectors;
-	int j;
-	unsigned char sum;
-	uint16_t sect_per_track;
-	struct label_blk_t *labelBlock;
 
-	dev->ssize = 2; /* allow for init_geom to change it */
-	dev->use_2m = 0x80; /* disable 2m mode to begin */
-
-	if(media == 0xf0 || media >= 0x100){		
-		dev->heads = WORD(nheads);
-		dev->sectors = WORD(nsect);
-		tot_sectors = DWORD(bigsect);
-		SET_INT(tot_sectors, WORD(psect));
-		sect_per_track = dev->heads * dev->sectors;
-		if(sect_per_track == 0) {
-		    if(mtools_skip_check) {
-			/* add some fake values if sect_per_track is
-			 * zero. Indeed, some atari disks lack the
-			 * geometry values (i.e. have zeroes in their
-			 * place). In order to avoid division by zero
-			 * errors later on, plug 1 everywhere
-			 */
-			dev->heads = 1;
-			dev->sectors = 1;
-			sect_per_track = 1;
-		    } else {
-			fprintf(stderr, "The devil is in the details: zero number of heads or sectors\n");
-			exit(1);
-		    }
-		}
-		dev->tracks = tot_sectors / sect_per_track;
-		if(tot_sectors % sect_per_track)
-			/* round size up */
-			dev->tracks++;
-		
-		BootP = WORD(ext.old.BootP);
-		Infp0 = WORD(ext.old.Infp0);
-		InfpX = WORD(ext.old.InfpX);
-		InfTm = WORD(ext.old.InfTm);
-		
-		if(WORD(fatlen)) {
-			labelBlock = &boot->boot.ext.old.labelBlock;
-		} else {
-			labelBlock = &boot->boot.ext.fat32.labelBlock;
-		}
-
-		if (boot->boot.descr >= 0xf0 &&
-		    has_BPB4 &&
-		    strncmp( boot->boot.banner,"2M", 2 ) == 0 &&
-		    BootP < 512 && Infp0 < 512 && InfpX < 512 && InfTm < 512 &&
-		    BootP >= InfTm + 2 && InfTm >= InfpX && InfpX >= Infp0 && 
-		    Infp0 >= 76 ){
-			for (sum=0, j=63; j < BootP; j++) 
-				sum += boot->bytes[j];/* checksum */
-			dev->ssize = boot->bytes[InfTm];
-			if (!sum && dev->ssize <= 7){
-				dev->use_2m = 0xff;
-				dev->ssize |= 0x80; /* is set */
-			}
-		}
-	} else
-		if(setDeviceFromOldDos(media, dev) < 0)
-			exit(1);
-
-	sectors = dev->sectors;
-	dev->sectors = dev->sectors * WORD(secsiz) / 512;
+	if(dev->sector_size && dev->sector_size != 512) {
+		dev->sectors =
+			(uint16_t) (dev->sectors * dev->sector_size / 512);
+	}
 
 #ifdef JPD
 	printf("file_geom:media=%0X=>cyl=%d,heads=%d,sects=%d,ssize=%d,use2m=%X\n",
 	       media, dev->tracks, dev->heads, dev->sectors, dev->ssize,
 	       dev->use_2m);
 #endif
-	ret = init_geom(This->fd,dev, orig_dev, &This->statbuf);
-	dev->sectors = sectors;
+	ret = init_geom_with_reg(This->fd,dev, orig_dev, &This->statbuf);
+	if(dev->sector_size && dev->sector_size != 512) {
+		dev->sectors =
+			(uint16_t) (dev->sectors * 512 / dev->sector_size);
+	}
 #ifdef JPD
 	printf("f_geom: after init_geom(), sects=%d\n", dev->sectors);
 #endif
@@ -292,192 +209,6 @@ static int file_discard(Stream_t *Stream)
 #endif
 }
 
-/* ZIP or other scsi device on Solaris or SunOS system.
-   Since Sun won't accept a non-Sun label on a scsi disk, we must
-   bypass Sun's disk interface and use low-level SCSI commands to read
-   or write the ZIP drive.  We thus replace the file_read and file_write
-   routines with our own scsi_read and scsi_write routines, that use the
-   uscsi ioctl interface.  By James Dugal, jpd@usl.edu, 11-96.  Tested
-   under Solaris 2.5 and SunOS 4.3.1_u1 using GCC.
-
-   Note: the mtools.conf entry for a ZIP drive would look like this:
-(solaris) drive C: file="/dev/rdsk/c0t5d0s2" partition=4  FAT=16 nodelay  exclusive scsi=&
-(sunos) drive C: file="/dev/rsd5c" partition=4  FAT=16 nodelay  exclusive scsi=1
-
-   Note 2: Sol 2.5 wants mtools to be suid-root, to use the ioctl.  SunOS is
-   happy if we just have access to the device, so making mtools sgid to a
-   group called, say, "ziprw" which has rw permission on /dev/rsd5c, is fine.
- */
-
-static void scsi_init(SimpleFile_t *This)
-{
-   int fd = This->fd;
-   unsigned char cdb[10],buf[8];
-
-   memset(cdb, 0, sizeof cdb);
-   memset(buf,0, sizeof(buf));
-   cdb[0]=SCSI_READ_CAPACITY;
-   if (scsi_cmd(fd, (unsigned char *)cdb, 
-		sizeof(cdb), SCSI_IO_READ, buf, sizeof(buf), This->extra_data)==0)
-   {
-       This->scsi_sector_size=
-	       ((unsigned)buf[5]<<16)|((unsigned)buf[6]<<8)|(unsigned)buf[7];
-       if (This->scsi_sector_size != 512)
-	   fprintf(stderr,"  (scsi_sector_size=%d)\n",This->scsi_sector_size);
-   }
-}
-
-static ssize_t scsi_io(Stream_t *Stream, char *buf,
-		       mt_off_t where, size_t len, scsi_io_mode_t rwcmd)
-{
-	unsigned int firstblock, nsect;
-	uint8_t clen;
-	int r;
-	unsigned int max;
-	off_t offset;
-	unsigned char cdb[10];
-	DeclareThis(SimpleFile_t);
-
-	firstblock=truncMtOffTo32u((where + This->offset)/This->scsi_sector_size);
-	/* 512,1024,2048,... bytes/sector supported */
-	offset=truncBytes32(where + This->offset - 
-			    firstblock*This->scsi_sector_size);
-	nsect=truncOffTo32u(offset+len+This->scsi_sector_size-1)/ This->scsi_sector_size;
-#if defined(OS_sun) && defined(OS_i386)
-	if (This->scsi_sector_size>512)
-		firstblock*=This->scsi_sector_size/512; /* work around a uscsi bug */
-#endif /* sun && i386 */
-
-	if (len>512) {
-		/* avoid buffer overruns. The transfer MUST be smaller or
-		* equal to the requested size! */
-		while (nsect*This->scsi_sector_size>len)
-			--nsect;
-		if(!nsect) {			
-			fprintf(stderr,"Scsi buffer too small\n");
-			exit(1);
-		}
-		if(rwcmd == SCSI_IO_WRITE && offset) {
-			/* there seems to be no memmove before a write */
-			fprintf(stderr,"Unaligned write\n");
-			exit(1);
-		}
-		/* a better implementation should use bounce buffers.
-		 * However, in normal operation no buffer overruns or
-		 * unaligned writes should happen anyways, as the logical
-		 * sector size is (hopefully!) equal to the physical one
-		 */
-	}
-
-
-	max = scsi_max_length();
-	
-	if (nsect > max)
-		nsect=max;
-	
-	/* set up SCSI READ/WRITE command */
-	memset(cdb, 0, sizeof cdb);
-
-	switch(rwcmd) {
-		case SCSI_IO_READ:
-			cdb[0] = SCSI_READ;
-			break;
-		case SCSI_IO_WRITE:
-			cdb[0] = SCSI_WRITE;
-			break;
-	}
-
-	cdb[1] = 0;
-
-	if (firstblock > 0x1fffff || nsect > 0xff) {
-		/* I suspect that the ZIP drive also understands Group 1
-		 * commands. If that is indeed true, we may chose Group 1
-		 * more aggressively in the future */
-
-		cdb[0] |= SCSI_GROUP1;
-		clen=10; /* SCSI Group 1 cmd */
-
-		/* this is one of the rare case where explicit coding is
-		 * more portable than macros... The meaning of scsi command
-		 * bytes is standardised, whereas the preprocessor macros
-		 * handling it might be not... */
-
-		cdb[2] = (unsigned char) (firstblock >> 24) & 0xff;
-		cdb[3] = (unsigned char) (firstblock >> 16) & 0xff;
-		cdb[4] = (unsigned char) (firstblock >> 8) & 0xff;
-		cdb[5] = (unsigned char) firstblock & 0xff;
-		cdb[6] = 0;
-		cdb[7] = (unsigned char) (nsect >> 8) & 0xff;
-		cdb[8] = (unsigned char) nsect & 0xff;
-		cdb[9] = 0;
-	} else {
-		clen = 6; /* SCSI Group 0 cmd */
-		cdb[1] |= (unsigned char) ((firstblock >> 16) & 0x1f);
-		cdb[2] = (unsigned char) ((firstblock >> 8) & 0xff);
-		cdb[3] = (unsigned char) firstblock & 0xff;
-		cdb[4] = (unsigned char) nsect;
-		cdb[5] = 0;
-	}
-	
-	if(This->privileged)
-		reclaim_privs();
-
-	r=scsi_cmd(This->fd, (unsigned char *)cdb, clen, rwcmd, buf,
-		   nsect*This->scsi_sector_size, This->extra_data);
-
-	if(This->privileged)
-		drop_privs();
-
-	if(r) {
-		perror(rwcmd == SCSI_IO_READ ? "SCMD_READ" : "SCMD_WRITE");
-		return -1;
-	}
-#ifdef JPD
-	printf("finished %u for %u\n", firstblock, nsect);
-#endif
-
-#ifdef JPD
-	printf("zip: read or write OK\n");
-#endif
-	if (offset>0)
-		memmove(buf,buf+offset,
-			truncOffToSize(nsect*This->scsi_sector_size-offset));
-	if (len==256) return 256;
-	else if (len==512) return 512;
-	else return truncOffToSsize(nsect*This->scsi_sector_size-offset);
-}
-
-static ssize_t scsi_read(Stream_t *Stream, char *buf, mt_off_t where, size_t len)
-{
-	
-#ifdef JPD
-	printf("zip: to read %d bytes at %d\n", len, where);
-#endif
-	return scsi_io(Stream, buf, where, len, SCSI_IO_READ);
-}
-
-static ssize_t scsi_write(Stream_t *Stream, char *buf,
-			  mt_off_t where, size_t len)
-{
-#ifdef JPD
-	Printf("zip: to write %d bytes at %d\n", len, where);
-#endif
-	return scsi_io(Stream, buf, where, len, SCSI_IO_WRITE);
-}
-
-static Class_t ScsiClass = {
-	scsi_read, 
-	scsi_write,
-	file_flush,
-	file_free,
-	file_geom,
-	file_data,
-	0, /* pre-allocate */
-	0, /* dos-convert */
-	file_discard
-};
-
-
 static Class_t SimpleFileClass = {
 	file_read, 
 	file_write,
@@ -489,6 +220,42 @@ static Class_t SimpleFileClass = {
 	0, /* dos-convert */
 	file_discard
 };
+
+
+int LockDevice(int fd, struct device *dev,
+	       int locked, int lockMode,
+	       char *errmsg)
+{
+#ifndef __EMX__
+#ifndef __CYGWIN__
+#ifndef OS_mingw32msvc
+	/* lock the device on writes */
+	if (locked && lock_dev(fd, (lockMode&O_ACCMODE) == O_RDWR, dev)) {
+		if(errmsg)
+#ifdef HAVE_SNPRINTF
+			snprintf(errmsg,199,
+				"plain floppy: device \"%s\" busy (%s):",
+				dev ? dev->name : "unknown", strerror(errno));
+#else
+			sprintf(errmsg,
+				"plain floppy: device \"%s\" busy (%s):",
+				(dev && strlen(dev->name) < 50) ? 
+				 dev->name : "unknown", strerror(errno));
+#endif
+
+		if(errno != EOPNOTSUPP || (lockMode&O_ACCMODE) == O_RDWR) {
+			/* If error is "not supported", and we're only
+			 * reading from the device anyways, then ignore. Some
+			 * OS'es don't support locks on read-only devices, even
+			 * if they are shared (read-only) locks */
+			return -1;
+		}
+	}
+#endif
+#endif
+#endif
+	return 0;
+}
 
 Stream_t *SimpleFileOpen(struct device *dev, struct device *orig_dev,
 			 const char *name, int mode, char *errmsg, 
@@ -509,13 +276,14 @@ HFILE FileHandle;
 ULONG Action;
 APIRET rc;
 #endif
+	if (IS_SCSI(dev))
+		return NULL;
 	This = New(SimpleFile_t);
 	if (!This){
 		printOom();
 		return 0;
 	}
 	memset((void*)This, 0, sizeof(SimpleFile_t));
-	This->scsi_sector_size = 512;
 	This->seekable = 1;
 #ifdef OS_hpux
 	This->size_limited = 0;
@@ -585,10 +353,6 @@ APIRET rc;
 	} else
 #endif
 	    {
-		if (IS_SCSI(dev))
-		    This->fd = scsi_open(name, mode, IS_NOLOCK(dev)?0444:0666,
-					 &This->extra_data);
-		else
 		    This->fd = open(name, mode | O_LARGEFILE | O_BINARY, 
 				    IS_NOLOCK(dev)?0444:0666);
 	    }
@@ -597,8 +361,7 @@ APIRET rc;
 		drop_privs();
 		
 	if (This->fd < 0) {
-		Free(This);
-		if(errmsg)
+		if(errmsg) {
 #ifdef HAVE_SNPRINTF
 			snprintf(errmsg, 199, "Can't open %s: %s",
 				name, strerror(errno));
@@ -606,7 +369,8 @@ APIRET rc;
 			sprintf(errmsg, "Can't open %s: %s",
 				name, strerror(errno));
 #endif
-		return NULL;
+		}
+		goto exit_1;
 	}
 
 	if(IS_PRIVILEGED(dev) && !(mode2 & NO_PRIV))
@@ -620,7 +384,6 @@ APIRET rc;
 	    && strncmp(name, "\\\\.\\", 4) != 0
 #endif
 	   ) {
-		Free(This);
 		if(errmsg) {
 #ifdef HAVE_SNPRINTF
 			snprintf(errmsg,199,"Can't stat %s: %s", 
@@ -635,175 +398,43 @@ APIRET rc;
 			}
 #endif
 		}
-		return NULL;
+		goto exit_0;
 	}
-#ifndef __EMX__
-#ifndef __CYGWIN__
-#ifndef OS_mingw32msvc
-	/* lock the device on writes */
-	if (locked && lock_dev(This->fd, (lockMode&O_ACCMODE) == O_RDWR, dev)) {
-		if(errmsg)
-#ifdef HAVE_SNPRINTF
-			snprintf(errmsg,199,
-				"plain floppy: device \"%s\" busy (%s):",
-				dev ? dev->name : "unknown", strerror(errno));
-#else
-			sprintf(errmsg,
-				"plain floppy: device \"%s\" busy (%s):",
-				(dev && strlen(dev->name) < 50) ? 
-				 dev->name : "unknown", strerror(errno));
-#endif
 
-		if(errno != EOPNOTSUPP || (lockMode&O_ACCMODE) == O_RDWR) {
-			/* If error is "not supported", and we're only
-			 * reading from the device anyways, then ignore. Some
-			 * OS'es don't support locks on read-only devices, even
-			 * if they are shared (read-only) locks */
-			close(This->fd);
-			Free(This);
-			return NULL;
-		}
-	}
-#endif
-#endif
-#endif
+	if(LockDevice(This->fd, dev, locked, lockMode, errmsg) < 0)
+		goto exit_0;
+	
 	/* set default parameters, if needed */
 	if (dev){
 		errno=0;
-		if ((!IS_MFORMAT_ONLY(dev) && dev->tracks) &&
-			init_geom(This->fd, dev, orig_dev, &This->statbuf)){
-			int err=errno;
-			close(This->fd);
-			Free(This);
-			if(geomFailure && (err==EBADF || err==EPERM)) {
+		if (((!IS_MFORMAT_ONLY(dev) && dev->tracks) ||
+		     mode2 & ALWAYS_GET_GEOMETRY) &&
+		    init_geom_with_reg(This->fd, dev, orig_dev,
+				       &This->statbuf)){
+			if(geomFailure && (errno==EBADF || errno==EPERM)) {
 				*geomFailure=1;
 				return NULL;
-			}
-			if(errmsg)
+			} else if(errmsg)
 				sprintf(errmsg,"init: set default params");
-			return NULL;
+			goto exit_0;
 		}
-		This->offset = (mt_off_t) dev->offset;
-	} else
-		This->offset = 0;
+	}
 
 	This->refs = 1;
 	This->Next = 0;
 	This->Buffer = 0;
 
-	if(maxSize) {
-		if (IS_SCSI(dev)) {
-			*maxSize = MAX_SIZE_T_B(31+log_2(This->scsi_sector_size));
-		} else {
-			*maxSize = (mt_size_t) max_off_t_seek;
-		}
-		if(This->offset > (mt_off_t) *maxSize) {
-			close(This->fd);
-			Free(This);
-			if(errmsg)
-				sprintf(errmsg,"init: Big disks not supported");
-			return NULL;
-		}
-		
-		*maxSize -= (mt_size_t) This->offset;
-	}
-	/* partitioned drive */
+	if(maxSize)
+		*maxSize = (mt_size_t) max_off_t_seek;
 
-	/* jpd@usl.edu: assume a partitioned drive on these 2 systems is a ZIP*/
-	/* or similar drive that must be accessed by low-level scsi commands */
-	/* AK: introduce new "scsi=1" statement to specifically set
-	 * this option. Indeed, there could conceivably be partitioned
-	 * devices where low level scsi commands will not be needed */
-	if(IS_SCSI(dev)) {
-		This->Class = &ScsiClass;
-		if(This->privileged)
-			reclaim_privs();
-		scsi_init(This);
-		if(This->privileged)
-			drop_privs();
-	}
-
-	This->swap = DO_SWAP( dev );
-
-	if(!(mode2 & NO_OFFSET) &&
-	   dev && (dev->partition > 4))
-	    fprintf(stderr, 
-		    "Invalid partition %d (must be between 0 and 4), ignoring it\n", 
-		    dev->partition);
-
-	while(!(mode2 & NO_OFFSET) &&
-	      dev && dev->partition && dev->partition <= 4) {
-		int has_activated;
-		unsigned int last_end, j;
-		unsigned char buf[2048];
-		struct partition *partTable=(struct partition *)(buf+ 0x1ae);
-		size_t partOff;
-		
-		/* read the first sector, or part of it */
-		if (force_read((Stream_t *)This, (char*) buf, 0, 512) != 512)
-			break;
-		if( _WORD(buf+510) != 0xaa55)
-			break;
-
-		partOff = BEGIN(partTable[dev->partition]);
-		if (maxSize) {
-			if (partOff > *maxSize >> 9) {
-				close(This->fd);
-				Free(This);
-				if(errmsg)
-					sprintf(errmsg,"init: Big disks not supported");
-				return NULL;
-			}
-			*maxSize -= (mt_size_t) partOff << 9;
-		}
-			
-		This->offset += (mt_off_t) partOff << 9;
-		if(!partTable[dev->partition].sys_ind) {
-			if(errmsg)
-				sprintf(errmsg,
-					"init: non-existant partition");
-			close(This->fd);
-			Free(This);
-			return NULL;
-		}
-
-		if(!dev->tracks) {
-			/* CHS Info left by recent partitioning tools are
-			   completely unreliable => just use standard LBA 
-			   geometry */
-			dev->heads = 16;
-			dev->sectors = 63;
-			dev->tracks = PART_SIZE(partTable[dev->partition])
-				/(16*63);
-		}
-		if(!mtools_skip_check &&
-		   consistencyCheck((struct partition *)(buf+0x1ae), 0, 0,
-				    &has_activated, &last_end, &j, dev, 0)) {
-			fprintf(stderr,
-				"Warning: inconsistent partition table\n");
-			fprintf(stderr,
-				"Possibly unpartitioned device\n");
-			fprintf(stderr,
-				"\n*** Maybe try without partition=%d in "
-				"device definition ***\n\n",
-				dev->partition);
-			fprintf(stderr,
-                                "If this is a PCMCIA card, or a disk "
-				"partitioned on another computer, this "
-				"message may be in error: add "
-				"mtools_skip_check=1 to your .mtoolsrc "
-				"file to suppress this warning\n");
-
-		}
-		break;
-		/* NOTREACHED */
-	}
-
-	This->lastwhere = -This->offset;
-	/* provoke a seek on those devices that don't start on a partition
-	 * boundary */
+	This->lastwhere = 0;
 
 	return (Stream_t *) This;
+ exit_0:
+	close(This->fd);
+ exit_1:
+	Free(This);
+	return NULL;
 }
 
 int get_fd(Stream_t *Stream)
@@ -811,16 +442,8 @@ int get_fd(Stream_t *Stream)
 	Class_t *clazz;
 	DeclareThis(SimpleFile_t);
 	clazz = This->Class;
-	if(clazz != &ScsiClass &&
-	   clazz != &SimpleFileClass)
+	if(clazz != &SimpleFileClass)
 	  return -1;
 	else
 	  return This->fd;
-}
-
-void *get_extra_data(Stream_t *Stream)
-{
-	DeclareThis(SimpleFile_t);
-	
-	return This->extra_data;
 }
