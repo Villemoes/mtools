@@ -67,7 +67,7 @@ static void set_offset(hsc *h, unsigned long offset,
 void setBeginEnd(struct partition *partTable,
 		 uint32_t begin, uint32_t end,
 		 uint16_t iheads, uint16_t isectors,
-		 int activate, uint8_t type, int fat_bits)
+		 int activate, uint8_t type, unsigned int fat_bits)
 {
 	uint8_t heads, sectors;
 
@@ -85,7 +85,7 @@ void setBeginEnd(struct partition *partTable,
 		exit(1);
 	}
 	sectors=(uint8_t) isectors;
-	
+
 	set_offset(&partTable->start, begin, heads, sectors);
 	set_offset(&partTable->end, end-1, heads, sectors);
 	set_dword(partTable->start_sect, begin);
@@ -305,7 +305,7 @@ void mpartition(int argc, char **argv, int dummy UNUSEDP)
 	char errmsg[2100];
 	char *bootSector=0;
 	struct partition *tpartition;
-	
+
 	argtracks = 0;
 	argheads = 0;
 	argsectors = 0;
@@ -433,7 +433,7 @@ void mpartition(int argc, char **argv, int dummy UNUSEDP)
 #ifdef USING_NEW_VOLD
 		strcpy(name, getVoldName(dev, name));
 #endif
-		Stream = OpenImage(&used_dev, dev, name, mode, errmsg, 
+		Stream = OpenImage(&used_dev, dev, name, mode, errmsg,
 				   open2flags | SKIP_PARTITION | ALWAYS_GET_GEOMETRY,
 				   mode, NULL, NULL, NULL);
 
@@ -448,7 +448,7 @@ void mpartition(int argc, char **argv, int dummy UNUSEDP)
 		}
 
 		tot_sectors = used_dev.tot_sectors;
-		
+
 		/* read the partition table */
 		if (READS(Stream, (char *) buf, 0, 512) != 512 && !initialize){
 #ifdef HAVE_SNPRINTF
@@ -602,7 +602,7 @@ void mpartition(int argc, char **argv, int dummy UNUSEDP)
 			fprintf(stderr, "Begin larger than end\n");
 			exit(1);
 		}
-		
+
 		/* Check whether new partition doesn't overlap with
 		 * any of those already in place */
 		if((overlap=findOverlap(partTable, 4, begin, end))) {
@@ -615,7 +615,7 @@ void mpartition(int argc, char **argv, int dummy UNUSEDP)
 		setBeginEnd(tpartition, begin, end,
 			    used_dev.heads, used_dev.sectors,
 			    !has_activated, type,
-			    dev->fat_bits);
+			    abs(dev->fat_bits));
 	}
 
 	if(activate) {
