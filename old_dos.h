@@ -1,4 +1,6 @@
-/*  Copyright 1999-2009 Alain Knaff.
+#ifndef MTOOLS_OLDDOS_H
+#define MTOOLS_OLDDOS_H
+/*  Copyright 2021 Alain Knaff.
  *  This file is part of mtools.
  *
  *  Mtools is free software: you can redistribute it and/or modify
@@ -15,13 +17,27 @@
  *  along with Mtools.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sysincludes.h"
-#include "msdos.h"
+#include "device.h"
 
-const char *mversion="4.0.33";
+struct OldDos_t {
+	unsigned int tracks;
+	uint16_t sectors;
+	uint16_t  heads;
 
-/* Multiple releases on same day should be marked with (b), (cd), (d) after
- * date string below */
-const char *mdate = "July 17th, 2021";
+	uint16_t dir_len;
+	uint8_t cluster_size;
+	uint32_t fat_len;
 
-const char *mformat_banner = "MTOO4033";
+	uint8_t media;
+};
+
+extern struct OldDos_t *getOldDosBySize(size_t size);
+extern struct OldDos_t *getOldDosByMedia(int media);
+extern struct OldDos_t *getOldDosByParams(unsigned int tracks,
+					  unsigned int heads,
+					  unsigned int sectors,
+					  unsigned int dir_len,
+					  unsigned int cluster_size);
+int setDeviceFromOldDos(int media, struct device *dev);
+
+#endif
