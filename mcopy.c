@@ -107,7 +107,6 @@ static int _unix_write(MainParam_t *mp, int needfilter, const char *unixFile)
 	Stream_t *File=mp->File;
 	Stream_t *Target, *Source;
 	struct MT_STAT stbuf;
-	ssize_t ret;
 	char errmsg[80];
 
 	File->Class->get_data(File, &mtime, 0, 0, 0);
@@ -164,7 +163,7 @@ static int _unix_write(MainParam_t *mp, int needfilter, const char *unixFile)
 	if ((Target = SimpleFileOpen(0, 0, unixFile,
 				     O_WRONLY | O_CREAT | O_TRUNC,
 				     errmsg, 0, 0, 0))) {
-		ret = 0;
+		mt_off_t ret = 0;
 		if(needfilter && arg->textmode){
 			Source = open_filter(COPY(File),arg->convertCharset);
 			if (!Source)

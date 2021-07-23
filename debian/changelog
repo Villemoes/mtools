@@ -1,8 +1,13 @@
+mtools (4.0.34) stable; urgency=low
+
+  *  Fix mcopy -s issue
+
+ -- Alain Knaff <alain@knaff.lu>  Fri, 23 Jul 2021 12:41:11 +0200
 mtools (4.0.33) stable; urgency=low
 
-  * Fix support for partitions (broken in
+  * Fix support for partitions (broken in 4.0.30)
   * Portability fixes for Solaris 10 and 11
-  * General simplifaction of configure script, and largefile handling
+  * General simplification of configure script, and largefile handling
   * Tested and fixed for platforms *without* largefile support
   * In cases where lseek works with 32-bit offsets, prefer lseek64 over llseek
   * Fixed floppy sector size handling on platforms that are not Linux
