@@ -94,7 +94,6 @@ int getfreeMinClusters(Stream_t *Stream, uint32_t ref);
 FILE *opentty(int mode);
 
 int is_dir(Stream_t *Dir, char *path);
-void bufferize(Stream_t **Dir);
 
 int dir_grow(Stream_t *Dir, int size);
 int match(const wchar_t *, const wchar_t *, wchar_t *, int,  int);
@@ -103,7 +102,8 @@ wchar_t *unix_name(doscp_t *fromDos,
 		   const char *base, const char *ext, uint8_t Case,
 		   wchar_t *answer);
 void *safe_malloc(size_t size);
-Stream_t *open_filter(Stream_t *Next,int convertCharset);
+Stream_t *open_dos2unix(Stream_t *Next,int convertCharset);
+Stream_t *open_unix2dos(Stream_t *Next,int convertCharset);
 
 extern int got_signal;
 /* int do_gotsignal(char *, int);
@@ -185,6 +185,7 @@ void read_config(void);
 off_t str_to_offset_with_end(const char *str, char **endp);
 mt_off_t str_to_off_with_end(const char *str, char **endp);
 off_t str_to_offset(char *str);
+uint32_t parseSize(char *sizeStr);
 unsigned int strtoui(const char *nptr, char **endptr, int base);
 unsigned int atoui(const char *nptr);
 #ifndef HAVE_STRTOI
@@ -200,7 +201,7 @@ uint32_t atou32(const char *str);
 
 #define New(type) ((type*)(calloc(1,sizeof(type))))
 #define Grow(adr,n,type) ((type*)(realloc((char *)adr,n*sizeof(type))))
-#define Free(adr) (free((char *)adr));
+#define Free(adr) (free((char *)adr))
 #define NewArray(size,type) ((type*)(calloc((size),sizeof(type))))
 
 void mattrib(int argc, char **argv, int type);

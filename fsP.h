@@ -27,17 +27,12 @@ typedef enum fatAccessMode_t {
 } fatAccessMode_t;
 
 typedef struct Fs_t {
-	Class_t *Class;
-	int refs;
-	Stream_t *Next;
-	Stream_t *Buffer;
+	struct Stream_t head;
 
 	int serialized;
 	unsigned long serial_number;
 	uint8_t cluster_size;
 	uint16_t sector_size;
-	/* Beware: anything up to this point is duplicated in
-	   FsPublic_t in fs.h */
 	
 	int fat_error;
 
@@ -45,7 +40,6 @@ typedef struct Fs_t {
 	void (*fat_encode)(struct Fs_t *This, unsigned int num,
 			   unsigned int code);
 
-	Stream_t *Direct;
 	int fat_dirty;
 	uint16_t fat_start;
 	uint32_t fat_len;

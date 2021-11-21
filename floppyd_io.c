@@ -47,10 +47,8 @@ static const char* AuthErrors[] = {
 
 
 typedef struct RemoteFile_t {
-	Class_t *Class;
-	int refs;
-	Stream_t *Next;
-	Stream_t *Buffer;
+	struct Stream_t head;
+
 	int fd;
 	mt_off_t offset;
 	mt_off_t lastwhere;
@@ -347,14 +345,14 @@ static ssize_t floppyd_io(Stream_t *Stream, char *buf, mt_off_t where,
 	return ret;
 }
 
-static ssize_t floppyd_read(Stream_t *Stream, char *buf,
-			    mt_off_t where, size_t len)
+static ssize_t floppyd_pread(Stream_t *Stream, char *buf,
+			     mt_off_t where, size_t len)
 {
 	return floppyd_io(Stream, buf, where, len, floppyd_reader);
 }
 
-static ssize_t floppyd_write(Stream_t *Stream, char *buf,
-			     mt_off_t where, size_t len)
+static ssize_t floppyd_pwrite(Stream_t *Stream, char *buf,
+			      mt_off_t where, size_t len)
 {
 	return floppyd_io(Stream, buf, where, len, floppyd_writer);
 }
@@ -436,8 +434,10 @@ static int floppyd_data(Stream_t *Stream, time_t *date, mt_off_t *size,
 /* ######################################################################## */
 
 static Class_t FloppydFileClass = {
-	floppyd_read,
-	floppyd_write,
+	0,
+	0,
+	floppyd_pread,
+	floppyd_pwrite,
 	floppyd_flush,
 	floppyd_free,
 	set_geom_noop,
@@ -576,12 +576,10 @@ Stream_t *FloppydOpen(struct device *dev,
 		printOom();
 		return NULL;
 	}
-	This->Class = &FloppydFileClass;
-	This->Next = 0;
+	init_head(&This->head, &FloppydFileClass, NULL);
+
 	This->offset = 0;
 	This->lastwhere = 0;
-	This->refs = 1;
-	This->Buffer = 0;
 
 	This->fd = ConnectToFloppyd(This, name, errmsg);
 	if (This->fd == -1) {
@@ -602,7 +600,7 @@ Stream_t *FloppydOpen(struct device *dev,
 			((This->capabilities & FLOPPYD_CAP_LARGE_SEEK) ?
 			 max_off_t_seek : max_off_t_31);
 	}
-	return (Stream_t *) This;
+	return &This->head;
 }
 
 static int ConnectToFloppyd(RemoteFile_t *floppyd, const char* name,

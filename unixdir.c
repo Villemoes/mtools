@@ -25,10 +25,7 @@
 #include <dirent.h>
 
 typedef struct Dir_t {
-	Class_t *Class;
-	int refs;
-	Stream_t *Next;
-	Stream_t *Buffer;
+	struct Stream_t head;
 
 	struct MT_STAT statbuf;
 	char *pathname;
@@ -68,6 +65,8 @@ static int dir_free(Stream_t *Stream)
 static Class_t DirClass = {
 	0, /* read */
 	0, /* write */
+	0, /* pread */
+	0, /* pwrite */
 	0, /* flush */
 	dir_free, /* free */
 	0, /* get_geom */
@@ -138,11 +137,7 @@ Stream_t *OpenDir(const char *filename)
 	Dir_t *This;
 
 	This = New(Dir_t);
-
-	This->Class = &DirClass;
-	This->Next = 0;
-	This->refs = 1;
-	This->Buffer = 0;
+	init_head(&This->head, &DirClass, NULL);
 	This->pathname = malloc(strlen(filename)+1);
 	if(This->pathname == NULL) {
 		Free(This);
@@ -163,5 +158,5 @@ Stream_t *OpenDir(const char *filename)
 		return NULL;
 	}
 
-	return (Stream_t *) This;
+	return &This->head;
 }

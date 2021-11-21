@@ -84,11 +84,11 @@ static int scan(Fs_t *Fs, Stream_t *dev,
 	start = (cluster - 2) * Fs->cluster_size + Fs->clus_start;
 	pos = sectorsToBytes(Fs, start);
 	if(doWrite) {
-		ret = force_write(dev, buffer, pos, in_len);
+		ret = force_pwrite(dev, buffer, pos, in_len);
 		if(ret < 0 || (size_t) ret < in_len )
 			bad = 1;
 	} else {
-		ret = force_read(dev, in_buf, pos, in_len);
+		ret = force_pread(dev, in_buf, pos, in_len);
 		if(ret < (off_t) in_len )
 			bad = 1;
 		else if(buffer) {
@@ -190,8 +190,8 @@ void mbadblocks(int argc, char **argv, int type UNUSEDP)
 	}
 	for(i=0; i < Fs->clus_start; i++ ){
 		ssize_t r;
-		r = READS(Fs->Next, in_buf,
-			  sectorsToBytes(Fs, i), Fs->sector_size);
+		r = PREADS(Fs->head.Next, in_buf,
+			   sectorsToBytes(Fs, i), Fs->sector_size);
 		if( r < 0 ){
 			perror("early error");
 			ret = -1;
@@ -238,7 +238,7 @@ void mbadblocks(int argc, char **argv, int type UNUSEDP)
 		}
 	} else {
 		Stream_t *dev;
-		dev = Fs->Next;
+		dev = Fs->head.Next;
 		if(dev->Next)
 			dev = dev->Next;
 
