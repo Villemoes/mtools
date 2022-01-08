@@ -1,7 +1,7 @@
 %define _binary_payload w9.gzdio
 Name:           mtools
 Summary:        mtools, read/write/list/format DOS disks under Unix
-Version:        4.0.36
+Version:        4.0.37
 Release:        1
 License:        GPLv3+
 Group:          Utilities/System
@@ -49,7 +49,6 @@ rm %{buildroot}%{_infodir}/dir
 %{_mandir}/man1/mbadblocks.1*
 %{_mandir}/man1/mcat.1*
 %{_mandir}/man1/mcd.1*
-%{_mandir}/man1/mclasserase.1*
 %{_mandir}/man1/mcopy.1*
 %{_mandir}/man1/mdel.1*
 %{_mandir}/man1/mdeltree.1*
@@ -77,7 +76,6 @@ rm %{buildroot}%{_infodir}/dir
 %{_bindir}/mbadblocks
 %{_bindir}/mcat
 %{_bindir}/mcd
-%{_bindir}/mclasserase
 %{_bindir}/mcopy
 %{_bindir}/mdel
 %{_bindir}/mdeltree
@@ -135,6 +133,12 @@ if [ -f %{_bindir}/install-info ] ; then
 fi
 
 %changelog
+* Sun Dec 26 2021 Alain Knaff <alain@knaff.lu>
+- Removed mclasserase commands, which doesn't fit the coding
+  structure of the rest of mtools
+- Add support to -i option to mcd
+- Document -i in mtools.1
+- Fix a missing commad error in floppyd_io.c
 * Sun Nov 21 2021 Alain Knaff <alain@knaff.lu>
 - Fix error status of recursive listing of empty root directory
 - If recursive listing, also show matched files at level one
