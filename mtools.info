@@ -1,6 +1,6 @@
 This is mtools.info, produced by makeinfo version 6.7 from mtools.texi.
 
-This manual is for Mtools (version 4.0.37, January 2022), which is a
+This manual is for Mtools (version 4.0.38, March 2022), which is a
 collection of tools to allow Unix systems to manipulate MS-DOS files.
 
    Copyright (C) 2007, 2009 Free Software Foundation, Inc.  Copyright
@@ -53,7 +53,7 @@ preliminary mounting or initialization (assuming the default
 '/etc/mtools.conf' works on your machine).  With mtools, one can change
 floppies too without unmounting and mounting.
 
-   This manual is for Mtools (version 4.0.37, January 2022), which is a
+   This manual is for Mtools (version 4.0.38, March 2022), which is a
 collection of tools to allow Unix systems to manipulate MS-DOS files.
 
    Copyright (C) 2007, 2009 Free Software Foundation, Inc.  Copyright
@@ -87,7 +87,7 @@ File: mtools.info,  Node: Location,  Next: Common features,  Prev: Top,  Up: Top
 *********************
 
 Mtools can be found at the following places (and their mirrors):
-     http://ftp.gnu.org/gnu/mtools/mtools-4.0.37.tar.gz
+     http://ftp.gnu.org/gnu/mtools/mtools-4.0.38.tar.gz
 
    These patches are named 'mtools-'VERSION'-'DDMM'.taz', where version
 stands for the base version, DD for the day and MM for the month.  Due
@@ -1073,7 +1073,7 @@ description of those.
 
 * floppyd::           floppy daemon to run on your X server box
 * floppyd_installtest:: small utility to check for the presence of floppyd
-* mattrib::           change MS-DOS file attribute flags
+* mattrib::           change MS-DOS file attribute bits
 * mbadblocks::        tests a floppy disk, and marks the bad blocks in the FAT
 * mcat::              same as cat. Only useful with floppyd.
 * mcd::               change MS-DOS directory
@@ -1239,14 +1239,14 @@ File: mtools.info,  Node: mattrib,  Next: mbadblocks,  Prev: floppyd_installtest
 4.3 Mattrib
 ===========
 
-'Mattrib' is used to change MS-DOS file attribute flags.  It has the
+'Mattrib' is used to change MS-DOS file attribute bits.  It has the
 following syntax:
 
    'mattrib' ['-a|+a'] ['-h|+h'] ['-r|+r'] ['-s|+s'] ['-/'] ['-p']
 ['-X'] MSDOSFILE [ MSDOSFILES ... ]
 
-   'Mattrib' adds attribute flags to an MS-DOS file (with the ''+''
-operator) or remove attribute flags (with the ''-'' operator).
+   'Mattrib' adds attribute bits to an MS-DOS file (with the ''+''
+operator) or remove attribute bits (with the ''-'' operator).
 
    'Mattrib' supports the following attribute bits:
 
@@ -2699,71 +2699,71 @@ Concept index
 
 
 Tag Table:
-Node: Top871
-Node: Location3127
-Node: Common features4065
-Node: arguments4829
-Node: drive letters6594
-Node: directory7948
-Node: long names8394
-Node: name clashes10940
-Node: case sensitivity13224
-Node: high capacity formats14461
-Node: more sectors15506
-Node: bigger sectors16561
-Node: 2m17290
-Node: XDF18476
-Node: exit codes19819
-Node: bugs20457
-Node: Configuration20990
-Node: configuration file location22279
-Node: general syntax22732
-Node: default values23563
-Node: global variables24091
-Node: per drive variables26284
-Node: general information27119
-Node: location information27561
-Node: geometry description29090
-Node: open flags32951
-Node: miscellaneous variables33551
-Node: miscellaneous flags37141
-Node: multiple descriptions40771
-Node: parsing order42445
-Node: old style configuration43476
-Node: Commands44175
-Node: floppyd46057
-Node: floppyd_installtest50850
-Node: mattrib51481
-Node: mbadblocks53276
-Node: mcat54570
-Node: mcd55384
-Node: mcopy56239
-Node: mdel59249
-Node: mdeltree59588
-Node: mdir60005
-Node: mdu61281
-Node: mformat61787
-Node: mkmanifest70298
-Node: minfo72272
-Node: mlabel72842
-Node: mmd73995
-Node: mmount74344
-Node: mmove74947
-Node: mpartition75752
-Node: mrd81278
-Node: mren81636
-Node: mshortname82385
-Node: mshowfat82715
-Node: mtoolstest83124
-Node: mtype83696
-Node: mzip84547
-Ref: mzip-Footnote-186572
-Ref: mzip-Footnote-286653
-Node: Compiling mtools86940
-Node: Porting mtools88039
-Node: Command Index93947
-Node: Variable Index94075
-Node: Concept Index95898
+Node: Top869
+Node: Location3123
+Node: Common features4061
+Node: arguments4825
+Node: drive letters6590
+Node: directory7944
+Node: long names8390
+Node: name clashes10936
+Node: case sensitivity13220
+Node: high capacity formats14457
+Node: more sectors15502
+Node: bigger sectors16557
+Node: 2m17286
+Node: XDF18472
+Node: exit codes19815
+Node: bugs20453
+Node: Configuration20986
+Node: configuration file location22275
+Node: general syntax22728
+Node: default values23559
+Node: global variables24087
+Node: per drive variables26280
+Node: general information27115
+Node: location information27557
+Node: geometry description29086
+Node: open flags32947
+Node: miscellaneous variables33547
+Node: miscellaneous flags37137
+Node: multiple descriptions40767
+Node: parsing order42441
+Node: old style configuration43472
+Node: Commands44171
+Node: floppyd46052
+Node: floppyd_installtest50845
+Node: mattrib51476
+Node: mbadblocks53268
+Node: mcat54562
+Node: mcd55376
+Node: mcopy56231
+Node: mdel59241
+Node: mdeltree59580
+Node: mdir59997
+Node: mdu61273
+Node: mformat61779
+Node: mkmanifest70290
+Node: minfo72264
+Node: mlabel72834
+Node: mmd73987
+Node: mmount74336
+Node: mmove74939
+Node: mpartition75744
+Node: mrd81270
+Node: mren81628
+Node: mshortname82377
+Node: mshowfat82707
+Node: mtoolstest83116
+Node: mtype83688
+Node: mzip84539
+Ref: mzip-Footnote-186564
+Ref: mzip-Footnote-286645
+Node: Compiling mtools86932
+Node: Porting mtools88031
+Node: Command Index93939
+Node: Variable Index94067
+Node: Concept Index95890
 
 End Tag Table
 
