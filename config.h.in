@@ -243,9 +243,6 @@
 /* Define to 1 if you have the `strspn' function. */
 #undef HAVE_STRSPN
 
-/* Define to 1 if you have the `strtoi' function. */
-#undef HAVE_STRTOI
-
 /* Define to 1 if you have the `strtol' function. */
 #undef HAVE_STRTOL
 
