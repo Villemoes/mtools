@@ -20,13 +20,10 @@
  */
 
 #include "sysincludes.h"
-#include "msdos.h"
-#include "vfat.h"
 #include "mtools.h"
 #include "file.h"
 #include "mainloop.h"
 #include "fs.h"
-#include "codepage.h"
 #include "file_name.h"
 
 #ifdef TEST_SIZE
@@ -159,7 +156,7 @@ static const char *dotted_num(mt_off_t num, size_t width, char **buf)
 	srcp = (*buf)+len;
 	dstp = (*buf)+len+1;
 
-	for ( ; dstp >= (*buf)+4 && isdigit (srcp[-1]); ) {
+	for ( ; dstp >= (*buf)+4 && isdigit ((unsigned char)srcp[-1]); ) {
 		srcp -= 3;  /* from here we copy three digits */
 		dstp -= 4;  /* that's where we put these 3 digits */
 	}

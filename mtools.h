@@ -16,7 +16,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Mtools.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "msdos.h"
 #include "llong.h"
 typedef struct dos_name_t dos_name_t;
 
@@ -96,11 +95,7 @@ FILE *opentty(int mode);
 int is_dir(Stream_t *Dir, char *path);
 
 int dir_grow(Stream_t *Dir, int size);
-int match(const wchar_t *, const wchar_t *, wchar_t *, int,  int);
 
-wchar_t *unix_name(doscp_t *fromDos,
-		   const char *base, const char *ext, uint8_t Case,
-		   wchar_t *answer);
 void *safe_malloc(size_t size);
 Stream_t *open_dos2unix(Stream_t *Next,int convertCharset);
 Stream_t *open_unix2dos(Stream_t *Next,int convertCharset);
@@ -132,16 +127,6 @@ UNUSED(static __inline__ char ch_toupper(char ch))
 UNUSED(static __inline__ char ch_tolower(char ch))
 {
         return (char) tolower( (unsigned char) ch);
-}
-
-UNUSED(static __inline__ wchar_t ch_towupper(wchar_t ch))
-{
-        return (wchar_t) towupper( (wint_t) ch);
-}
-
-UNUSED(static __inline__ wchar_t ch_towlower(wchar_t ch))
-{
-        return (wchar_t) towlower( (wint_t) ch);
 }
 
 UNUSED(static __inline__ void init_random(void))
@@ -273,5 +258,15 @@ ssize_t safePopenOut(const char **command, char *output, size_t len);
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
+
+extern const char *mversion;
+extern const char *mdate;
+extern const char *mformat_banner;
+
+extern char *Version;
+extern char *Date;
+
+
+int init(char drive, int mode);
 
 #endif

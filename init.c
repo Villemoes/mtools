@@ -315,7 +315,7 @@ static Stream_t *try_device(struct device *dev,
 #else
 			sprintf(errmsg,
 				"Can't set disk parameters for %c: %s",
-				drive, strerror(errno));
+				dev->drive, strerror(errno));
 #endif
 			else
 				sprintf(errmsg,
@@ -565,7 +565,7 @@ Stream_t *fs_init(char drive, int mode, int *isRop)
 		blocksize = dev.blocksize;
 	if (disk_size) {
 		Stream_t *Buffer = buf_init(This->head.Next,
-					    8 * disk_size * blocksize,
+					    disk_size * blocksize,
 					    disk_size * blocksize,
 					    This->sector_size);
 

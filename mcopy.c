@@ -1,5 +1,5 @@
 /*  Copyright 1986-1992 Emmet P. Gray.
- *  Copyright 1994,1996-2002,2007-2009,2021 Alain Knaff.
+ *  Copyright 1994,1996-2002,2007-2009,2021-2022 Alain Knaff.
  *  This file is part of mtools.
  *
  *  Mtools is free software: you can redistribute it and/or modify
@@ -22,16 +22,16 @@
 
 
 #include "sysincludes.h"
-#include "msdos.h"
 #include "mtools.h"
-#include "vfat.h"
 #include "mainloop.h"
 #include "plain_io.h"
 #include "nameclash.h"
 #include "file.h"
 #include "fs.h"
 
-
+#if defined(HAVE_UTIMES) && defined(HAVE_SYS_TIME_H)
+#include <sys/time.h>
+#endif
 /*
  * Preserve the file modification times after the fclose()
  */
@@ -48,6 +48,12 @@ static void set_mtime(const char *target, time_t mtime)
 		utimes(target, tv);
 #else
 #ifdef HAVE_UTIME
+#ifndef HAVE_UTIMBUF
+		struct utimbuf {
+			time_t actime;       /* access time */
+			time_t modtime;      /* modification time */
+		};
+#endif		
 		struct utimbuf utbuf;
 
 		utbuf.actime = mtime;
@@ -553,7 +559,7 @@ void mcopy(int argc, char **argv, int mtype)
 				batchmode = 1;
 				break;
 			case 'o':
-				handle_clash_options(&arg.ch, (char) c);
+				handle_clash_options(&arg.ch, c);
 				break;
 			case 'D':
 				if(handle_clash_options(&arg.ch, *optarg))

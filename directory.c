@@ -16,7 +16,6 @@
  *  along with Mtools.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "sysincludes.h"
-#include "msdos.h"
 #include "stream.h"
 #include "mtools.h"
 #include "file.h"
@@ -136,10 +135,11 @@ struct directory *mk_entry_from_base(const char *base, unsigned char attr,
 				     unsigned int fat, uint32_t size, time_t date,
 				     struct directory *ndir)
 {
+	struct directory *entry;
 	struct dos_name_t dn;
 	strncpy(dn.base, base, 8);
 	strncpy(dn.ext, "   ", 3);
-	struct directory *entry = mk_entry(&dn, attr, fat, size, date, ndir);
+	entry = mk_entry(&dn, attr, fat, size, date, ndir);
 	entry->Case = 0;
 	return entry;
 }

@@ -32,10 +32,6 @@
 #include "plain_io.h"
 #include "llong.h"
 
-#ifdef HAVE_LINUX_FS_H
-# include <linux/fs.h>
-#endif
-
 typedef struct SimpleFile_t {
     struct Stream_t head;
 
@@ -91,7 +87,7 @@ static ssize_t file_io(SimpleFile_t *This, char *buf,
 #endif
 
 	if ( ret == -1 ){
-		perror("plain_io");
+		perror("plain_io read/write");
 		return -1;
 	}
 	This->lastwhere = where + ret;

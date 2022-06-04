@@ -21,9 +21,7 @@
 
 
 #include "sysincludes.h"
-#include "msdos.h"
 #include "mtools.h"
-#include "vfat.h"
 #include "mainloop.h"
 #include "plain_io.h"
 #include "nameclash.h"
@@ -172,7 +170,7 @@ void mmd(int argc, char **argv, int type UNUSEDP)
 			case '?':
 				usage(1);
 			case 'o':
-				handle_clash_options(&arg.ch, (char) c);
+				handle_clash_options(&arg.ch, c);
 				break;
 			case 'D':
 				if(handle_clash_options(&arg.ch, *optarg))

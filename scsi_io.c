@@ -26,7 +26,6 @@
 #include "sysincludes.h"
 #include "stream.h"
 #include "mtools.h"
-#include "msdos.h"
 #include "llong.h"
 
 #include "open_image.h"
@@ -34,7 +33,7 @@
 #include "scsi.h"
 #include "plain_io.h"
 #include "scsi_io.h"
-
+#ifdef HAVE_SCSI
 typedef struct ScsiDevice_t {
 	struct Stream_t head;
 
@@ -348,3 +347,4 @@ Stream_t *OpenScsi(struct device *dev,
 	Free(This);
 	return NULL;
 }
+#endif
