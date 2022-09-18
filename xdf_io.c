@@ -245,7 +245,7 @@ static void adjust_bounds(Xdf_t *This, uint32_t ibegin, uint32_t iend,
 }
 
 
-static __inline__ int try_flush_dirty(Xdf_t *This)
+static inline int try_flush_dirty(Xdf_t *This)
 {
 	unsigned char ptr;
 	int nr, bytes;
@@ -601,7 +601,7 @@ static void set_geom(Xdf_t *This, struct device *dev)
 	dev->tracks = 80;
 }
 
-static int config_geom(Stream_t *Stream UNUSEDP, struct device *dev,
+static int config_geom(Stream_t *Stream, struct device *dev,
 		       struct device *orig_dev UNUSEDP)
 {
 	DeclareThis(Xdf_t);
@@ -699,14 +699,14 @@ Stream_t *XdfOpen(struct device *dev, const char *name,
 
 	boot = (union bootsector *) This->buffer;
 
-	fatSize = WORD(fatlen);
+	fatSize = BOOT_WORD(fatlen);
 	if(fatSize > UINT8_MAX) {
 		fprintf(stderr, "Fat size %d too large\n", fatSize);
 		exit(1);
 	}
 	This->FatSize = (uint8_t) fatSize;
-	This->RootDirSize = WORD(dirents)/16;
-	This->track_size = WORD(nsect);
+	This->RootDirSize = BOOT_WORD(dirents)/16;
+	This->track_size = BOOT_WORD(nsect);
 	for(type=0; type < NUMBER(xdf_table); type++) {
 		if(xdf_table[type].track_size == This->track_size) {
 			This->map = xdf_table[type].map;
