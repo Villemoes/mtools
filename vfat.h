@@ -39,15 +39,14 @@ struct scan_state {
 	int longmatch;
 	unsigned int free_start;
 	unsigned int free_end;
-	int slot;
+	unsigned int slot;
 	int got_slots;
 	unsigned int size_needed;
-	int max_entry;
+	unsigned int max_entry;
 };
 
 #include "mtoolsDirentry.h"
 
-int clear_vses(Stream_t *, int, unsigned int);
 void autorename_short(struct dos_name_t *, int);
 void autorename_long(char *, int);
 

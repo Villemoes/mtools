@@ -2127,7 +2127,6 @@ $4
 static long int longval () { return $2; }
 static unsigned long int ulongval () { return $2; }
 #include <stdio.h>
-#include <stdlib.h>
 int
 main ()
 {
