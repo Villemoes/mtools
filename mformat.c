@@ -22,7 +22,6 @@
 
 #include "sysincludes.h"
 #include "mtools.h"
-#include "mainloop.h"
 #include "device.h"
 #include "old_dos.h"
 #include "fsP.h"
@@ -904,6 +903,9 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 	uint8_t mediaDesc=0;
 	bool haveMediaDesc=false;
 
+	uint8_t biosDisk=0;
+	bool haveBiosDisk=false;
+
 	mt_off_t maxSize;
 
 	int Atari = 0; /* should we add an Atari-style serial number ? */
@@ -944,8 +946,8 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 	if(helpFlag(argc, argv))
 		usage(0);
 	while ((c = getopt(argc,argv,
-			   "i:148f:t:n:v:qub"
-			   "kK:R:B:r:L:I:FCc:Xh:s:T:l:N:H:M:S:2:30:Aad:m:"))!= EOF) {
+			   "i:148f:t:n:v:qu"
+			   "b:kK:R:B:r:L:I:FCc:Xh:s:T:l:N:H:M:S:2:30:Aad:m:"))!= EOF) {
 		errno = 0;
 		endptr = NULL;
 		switch (c) {
@@ -997,12 +999,14 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 			/* flags supported by Dos but not mtools */
 			case 'q':
 			case 'u':
-			case 'b':
 			/*case 's': leave this for compatibility */
 				fprintf(stderr,
 					"Flag %c not supported by mtools\n",c);
 				exit(1);
 
+			case 'b':
+				haveBiosDisk=1;
+				biosDisk = atou8(optarg);
 
 
 			/* flags added by mtools */
@@ -1256,7 +1260,7 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 	}
 
 	if(tot_sectors == 0) {
-		fprintf(stderr, "Number of sectors not known\n");
+		fprintf(stderr, "Disk size not known\n");
 		exit(1);
 	}
 
@@ -1369,10 +1373,14 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 	if(Fs->cp == NULL)
 		exit(1);
 
-	if (!keepBoot)
-		/* only zero out physdrive if we don't have a template
+	if(haveMediaDesc)
+		boot.boot.descr=mediaDesc;
+	if(haveBiosDisk)
+		labelBlock->physdrive = biosDisk;
+	else if (!keepBoot)
+		/* only set physdrive if we don't have a template
 		 * bootsector */
-		labelBlock->physdrive = 0x00;
+		labelBlock->physdrive = (boot.boot.descr == 0xf8) ? 0x80 : 0x00;
 	labelBlock->reserved = 0;
 	labelBlock->dos4 = 0x29;
 
@@ -1419,8 +1427,6 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 	}
 	if(used_dev.use_2m & 0x7f)
 		Fs->num_fat = 1;
-	if(haveMediaDesc)
-		boot.boot.descr=mediaDesc;
 	Fs->lastFatSectorNr = 0;
 	Fs->lastFatSectorData = 0;
 	zero_fat(Fs, boot.boot.descr);
