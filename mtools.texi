@@ -130,6 +130,7 @@ list is archived at http://lists.gnu.org/pipermail/info-mtools/
 * arguments::              What the command line parameters of mtools
                            mean
 * drive letters::          Which drives are defined by default
+* sizes and offsets::      How can a disk size or offset be specified
 * directory::              Current working directory
 * long names::             VFAT-style long filenames
 * name clashes::           Name clash handling, and associated command
@@ -177,7 +178,7 @@ verbose mode, these commands print out the name of the MS-DOS files
 upon which they act, unless stated otherwise. @xref{Commands}, for a
 description of the options which are specific to each command.
 
-@node drive letters, directory, arguments, Common features
+@node drive letters, sizes and offsets, arguments, Common features
 @section Drive letters
 
 The meaning of the drive letters depends on the target architectures.
@@ -213,7 +214,45 @@ Example:
 This looks for the image at the offset of 1M in the file, rather than
 at its beginning.
 
-@node directory, long names, drive letters, Common features
+
+@node sizes and offsets, directory, drive letters, Common features
+@section Sizes and offsets
+
+Certain commands, such as @code{mformat}, allow you to specify a hard
+disk size.
+
+The size is a number, followed by an optional unit suffix.
+
+The number is interpreted as a hexadecimal number if it starts with
+@code{0x}, as an octal number if it starts with the digit @code{0}, or
+as a decimal number if it starts with any other digit.
+
+The following units are supported:
+
+@itemize @bullet
+@item
+@code{S} sectors (of 512 bytes)
+
+@item
+@code{K} Kilobytes
+
+@item
+@code{M} Megabytes
+
+@item
+@code{G} Gigabytes
+
+@item
+@code{T} Terabytes
+@end itemize
+
+If no unit is specified, the default depends on context. Mformat's
+@code{T} option, and mpartition's @code{l} option assume sectors,
+whereas all other places (mshowfat's @code{o} option, @code{offset}
+drive config option and @code{data_map} drive config option) assume
+bytes.
+
+@node directory, long names, sizes and offsets, Common features
 @section Current working directory
 @pindex mcd (introduction)
 @cindex Directory

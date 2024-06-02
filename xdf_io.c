@@ -428,7 +428,7 @@ static int decompose(Xdf_t *This, mt_off_t iwhere, size_t len,
 	uint32_t track_size = This->track_size * 1024;
 
 	smt_off_t track = (smt_off_t) iwhere / track_size;
-	uint32_t where = (smt_off_t) iwhere % track_size;
+	uint32_t where = (uint32_t) ((smt_off_t) iwhere % track_size);
 
 	*begin = where;
 	if(where + len > track_size)

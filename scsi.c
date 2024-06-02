@@ -101,7 +101,7 @@ int scsi_open(const char *name, int flag UNUSEDP, int mode UNUSEDP,
 #endif
 }
 
-int scsi_cmd(int fd, unsigned char *cdb, uint8_t cmdlen, scsi_io_mode_t mode,
+int scsi_cmd(int fd, unsigned char cdb[6], uint8_t cmdlen, scsi_io_mode_t mode,
 	     void *data, uint32_t len, void *extra_data UNUSEDP)
 {
 #if defined OS_hpux

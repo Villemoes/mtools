@@ -157,7 +157,7 @@ static int unix_target_lookup(Arg_t *arg, const char *in)
 	}
 }
 
-int target_lookup(Arg_t *arg, const char *in)
+static int target_lookup(Arg_t *arg, const char *in)
 {
 	if(in[0] && in[1] == ':' )
 		return dos_target_lookup(&arg->mp, in);
@@ -165,7 +165,7 @@ int target_lookup(Arg_t *arg, const char *in)
 		return unix_target_lookup(arg, in);
 }
 
-static int _unix_write(MainParam_t *mp, int needfilter, const char *unixFile);
+static int mt_unix_write(MainParam_t *mp, int needfilter, const char *unixFile);
 
 /* Write the Unix file */
 static int unix_write(MainParam_t *mp, int needfilter)
@@ -173,7 +173,7 @@ static int unix_write(MainParam_t *mp, int needfilter)
 	Arg_t *arg=(Arg_t *) mp->arg;
 
 	if(arg->type)
-		return _unix_write(mp, needfilter, "-");
+		return mt_unix_write(mp, needfilter, "-");
 	else {
 		char *unixFile = buildUnixFilename(arg);
 		int ret;
@@ -181,7 +181,7 @@ static int unix_write(MainParam_t *mp, int needfilter)
 			printOom();
 			return ERROR_ONE;
 		}
-		ret = _unix_write(mp, needfilter, unixFile);
+		ret = mt_unix_write(mp, needfilter, unixFile);
 		free(unixFile);
 		return ret;
 	}
@@ -189,7 +189,7 @@ static int unix_write(MainParam_t *mp, int needfilter)
 
 
 /* Write the Unix file */
-static int _unix_write(MainParam_t *mp, int needfilter, const char *unixFile)
+static int mt_unix_write(MainParam_t *mp, int needfilter, const char *unixFile)
 {
 	Arg_t *arg=(Arg_t *) mp->arg;
 	time_t mtime;

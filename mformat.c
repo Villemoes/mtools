@@ -1007,7 +1007,7 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 			case 'b':
 				haveBiosDisk=1;
 				biosDisk = atou8(optarg);
-
+				break;
 
 			/* flags added by mtools */
 			case 'F':
@@ -1103,7 +1103,7 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 				}
 				break;
 			case 'R':
-				Fs->fat_start = atou8(optarg);
+				Fs->fat_start = atou16(optarg);
 				break;
 			case 'h':
 				argheads = atou16(optarg);

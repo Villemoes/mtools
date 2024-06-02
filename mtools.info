@@ -1,6 +1,6 @@
-This is mtools.info, produced by makeinfo version 6.7 from mtools.texi.
+This is mtools.info, produced by makeinfo version 6.8 from mtools.texi.
 
-This manual is for Mtools (version 4.0.43, March 2023), which is a
+This manual is for Mtools (version 4.0.44, June 2024), which is a
 collection of tools to allow Unix systems to manipulate MS-DOS files.
 
    Copyright (C) 2007, 2009 Free Software Foundation, Inc.  Copyright
@@ -25,18 +25,6 @@ Mtools doc
 
 This is mtools' documentation.
 
-* Menu:
-
-* Location::
-* Common features::
-* Configuration::
-* Commands::
-* Compiling mtools::
-* Porting mtools::
-* Command Index::
-* Variable Index::
-* Concept Index::
-
 Introduction
 ************
 
@@ -53,7 +41,7 @@ preliminary mounting or initialization (assuming the default
 '/etc/mtools.conf' works on your machine).  With mtools, one can change
 floppies too without unmounting and mounting.
 
-   This manual is for Mtools (version 4.0.43, March 2023), which is a
+   This manual is for Mtools (version 4.0.44, June 2024), which is a
 collection of tools to allow Unix systems to manipulate MS-DOS files.
 
    Copyright (C) 2007, 2009 Free Software Foundation, Inc.  Copyright
@@ -87,7 +75,7 @@ File: mtools.info,  Node: Location,  Next: Common features,  Prev: Top,  Up: Top
 *********************
 
 Mtools can be found at the following places (and their mirrors):
-     http://ftp.gnu.org/gnu/mtools/mtools-4.0.43.tar.gz
+     http://ftp.gnu.org/gnu/mtools/mtools-4.0.44.tar.gz
 
    These patches are named 'mtools-'VERSION'-'DDMM'.taz', where version
 stands for the base version, DD for the day and MM for the month.  Due
@@ -112,6 +100,7 @@ File: mtools.info,  Node: Common features,  Next: Configuration,  Prev: Location
 * arguments::              What the command line parameters of mtools
                            mean
 * drive letters::          Which drives are defined by default
+* sizes and offsets::      How can a disk size or offset be specified
 * directory::              Current working directory
 * long names::             VFAT-style long filenames
 * name clashes::           Name clash handling, and associated command
@@ -160,7 +149,7 @@ act, unless stated otherwise.  *Note Commands::, for a description of
 the options which are specific to each command.
 
 
-File: mtools.info,  Node: drive letters,  Next: directory,  Prev: arguments,  Up: Common features
+File: mtools.info,  Node: drive letters,  Next: sizes and offsets,  Prev: arguments,  Up: Common features
 
 2.2 Drive letters
 =================
@@ -195,9 +184,41 @@ using the '-i' options.
 at its beginning.
 
 
-File: mtools.info,  Node: directory,  Next: long names,  Prev: drive letters,  Up: Common features
+File: mtools.info,  Node: sizes and offsets,  Next: directory,  Prev: drive letters,  Up: Common features
 
-2.3 Current working directory
+2.3 Sizes and offsets
+=====================
+
+Certain commands, such as 'mformat', allow you to specify a hard disk
+size.
+
+   The size is a number, followed by an optional unit suffix.
+
+   The number is interpreted as a hexadecimal number if it starts with
+'0x', as an octal number if it starts with the digit '0', or as a
+decimal number if it starts with any other digit.
+
+   The following units are supported:
+
+   * 'S' sectors (of 512 bytes)
+
+   * 'K' Kilobytes
+
+   * 'M' Megabytes
+
+   * 'G' Gigabytes
+
+   * 'T' Terabytes
+
+   If no unit is specified, the default depends on context.  Mformat's
+'T' option, and mpartition's 'l' option assume sectors, whereas all
+other places (mshowfat's 'o' option, 'offset' drive config option and
+'data_map' drive config option) assume bytes.
+
+
+File: mtools.info,  Node: directory,  Next: long names,  Prev: sizes and offsets,  Up: Common features
+
+2.4 Current working directory
 =============================
 
 The 'mcd' command (*note mcd::) is used to establish the device and the
@@ -209,7 +230,7 @@ drive.
 
 File: mtools.info,  Node: long names,  Next: name clashes,  Prev: directory,  Up: Common features
 
-2.4 VFAT-style long file names
+2.5 VFAT-style long file names
 ==============================
 
 This version of mtools supports VFAT style long filenames.  If a Unix
@@ -269,7 +290,7 @@ illegal:
 
 File: mtools.info,  Node: name clashes,  Next: case sensitivity,  Prev: long names,  Up: Common features
 
-2.5 Name clashes
+2.6 Name clashes
 ================
 
 When writing a file to disk, its long name or short name may collide
@@ -337,7 +358,7 @@ to overwrite the file, or to skip it.
 
 File: mtools.info,  Node: case sensitivity,  Next: high capacity formats,  Prev: name clashes,  Up: Common features
 
-2.6 Case sensitivity of the VFAT file system
+2.7 Case sensitivity of the VFAT file system
 ============================================
 
 The VFAT file system is able to remember the case of the filenames.
@@ -361,7 +382,7 @@ used to generate lower case Unix filenames.
 
 File: mtools.info,  Node: high capacity formats,  Next: exit codes,  Prev: case sensitivity,  Up: Common features
 
-2.7 high capacity formats
+2.8 high capacity formats
 =========================
 
 Mtools supports a number of formats which allow storage of more data on
@@ -388,7 +409,7 @@ format XDF.
 
 File: mtools.info,  Node: more sectors,  Next: bigger sectors,  Prev: high capacity formats,  Up: high capacity formats
 
-2.7.1 More sectors
+2.8.1 More sectors
 ------------------
 
 The oldest method of fitting more data on a disk is to use more sectors
@@ -410,7 +431,7 @@ PC.
 
 File: mtools.info,  Node: bigger sectors,  Next: 2m,  Prev: more sectors,  Up: high capacity formats
 
-2.7.2 Bigger sectors
+2.8.2 Bigger sectors
 --------------------
 
 By using bigger sectors it is possible to go beyond the capacity which
@@ -428,7 +449,7 @@ headers, for the same amount of useful data.
 
 File: mtools.info,  Node: 2m,  Next: XDF,  Prev: bigger sectors,  Up: high capacity formats
 
-2.7.3 2m
+2.8.3 2m
 --------
 
 The 2m format was originally invented by Ciriaco Garcia de Celis.  It
@@ -454,7 +475,7 @@ else than a DOS file system*.
 
 File: mtools.info,  Node: XDF,  Prev: 2m,  Up: high capacity formats
 
-2.7.4 XDF
+2.8.4 XDF
 ---------
 
 XDF is a high capacity format used by OS/2.  It can hold 1840 K per
@@ -482,7 +503,7 @@ Mtools binaries compiled on kernels older than 1.3.34 won't run on any
 
 File: mtools.info,  Node: exit codes,  Next: bugs,  Prev: high capacity formats,  Up: Common features
 
-2.8 Exit codes
+2.9 Exit codes
 ==============
 
 All the Mtools commands return 0 on success, 1 on utter failure, or 2 on
@@ -496,8 +517,8 @@ the corresponding configuration file variable (*note global variables::)
 
 File: mtools.info,  Node: bugs,  Prev: exit codes,  Up: Common features
 
-2.9 Bugs
-========
+2.10 Bugs
+=========
 
 An unfortunate side effect of not guessing the proper device (when
 multiple disk capacities are supported) is an occasional error message
@@ -513,15 +534,6 @@ File: mtools.info,  Node: Configuration,  Next: Commands,  Prev: Common features
 
 3 How to configure mtools for your environment
 **********************************************
-
-* Menu:
-
-* configuration file location::
-* default values::
-* global variables::
-* per drive variables::
-* parsing order::
-* old style configuration::
 
 3.1 Description
 ===============
@@ -556,10 +568,6 @@ File: mtools.info,  Node: configuration file location,  Next: general syntax,  P
 
    On some systems, the system-wide configuration file is called
 '/etc/default/mtools.conf' instead.
-
-* Menu:
-
-* general syntax::
 
 
 File: mtools.info,  Node: general syntax,  Next: default values,  Prev: configuration file location,  Up: Configuration
@@ -2437,7 +2445,7 @@ Variable index
 * filter:                                miscellaneous flags.  (line 78)
 * heads:                                 geometry description. (line 63)
 * mformat_only:                          miscellaneous flags.  (line 74)
-* MTOOLSRC:                              Configuration.        (line 18)
+* MTOOLSRC:                              Configuration.        (line  9)
 * MTOOLS_DOTTED_DIR:                     global variables.     (line  6)
 * MTOOLS_FAT_COMPATIBILITY:              global variables.     (line  6)
 * MTOOLS_LOCK_TIMEOUT:                   global variables.     (line  6)
@@ -2492,7 +2500,7 @@ Concept index
 * Configuration file syntax:             general syntax.       (line  6)
 * Configuration file, old syntax:        old style configuration.
                                                                (line  6)
-* Configuration files:                   Configuration.        (line 18)
+* Configuration files:                   Configuration.        (line  9)
 * Configuration of disk geometry:        geometry description. (line  6)
 * Copying an entire disk image:          mcat.                 (line  9)
 * Copying MS-DOS files:                  mcopy.                (line  6)
@@ -2712,71 +2720,72 @@ Concept index
 
 
 Tag Table:
-Node: Top869
-Node: Location3123
-Node: Common features4061
-Node: arguments4825
-Node: drive letters6590
-Node: directory7944
-Node: long names8390
-Node: name clashes10936
-Node: case sensitivity13220
-Node: high capacity formats14457
-Node: more sectors15502
-Node: bigger sectors16557
-Node: 2m17286
-Node: XDF18472
-Node: exit codes19815
-Node: bugs20453
-Node: Configuration20986
-Node: configuration file location22275
-Node: general syntax22728
-Node: default values23559
-Node: global variables24087
-Node: per drive variables26280
-Node: general information27115
-Node: location information27557
-Node: geometry description29086
-Node: open flags32947
-Node: miscellaneous variables33547
-Node: miscellaneous flags37417
-Node: multiple descriptions41047
-Node: parsing order42721
-Node: old style configuration43752
-Node: Commands44451
-Node: floppyd46332
-Node: floppyd_installtest51125
-Node: mattrib51756
-Node: mbadblocks53548
-Node: mcat54842
-Node: mcd55656
-Node: mcopy56511
-Node: mdel59521
-Node: mdeltree59860
-Node: mdir60277
-Node: mdu61553
-Node: mformat62059
-Node: mkmanifest70757
-Node: minfo72731
-Node: mlabel73301
-Node: mmd74454
-Node: mmount74803
-Node: mmove75406
-Node: mpartition76211
-Node: mrd81737
-Node: mren82095
-Node: mshortname82844
-Node: mshowfat83174
-Node: mtoolstest83583
-Node: mtype84155
-Node: mzip85006
-Ref: mzip-Footnote-187031
-Ref: mzip-Footnote-287112
-Node: Compiling mtools87399
-Node: Porting mtools88498
-Node: Command Index94406
-Node: Variable Index94534
-Node: Concept Index96357
+Node: Top868
+Node: Location2952
+Node: Common features3890
+Node: arguments4724
+Node: drive letters6489
+Node: sizes and offsets7851
+Node: directory8741
+Node: long names9191
+Node: name clashes11737
+Node: case sensitivity14021
+Node: high capacity formats15258
+Node: more sectors16303
+Node: bigger sectors17358
+Node: 2m18087
+Node: XDF19273
+Node: exit codes20616
+Node: bugs21254
+Node: Configuration21789
+Node: configuration file location22926
+Node: general syntax23350
+Node: default values24181
+Node: global variables24709
+Node: per drive variables26902
+Node: general information27737
+Node: location information28179
+Node: geometry description29708
+Node: open flags33569
+Node: miscellaneous variables34169
+Node: miscellaneous flags38039
+Node: multiple descriptions41669
+Node: parsing order43343
+Node: old style configuration44374
+Node: Commands45073
+Node: floppyd46954
+Node: floppyd_installtest51747
+Node: mattrib52378
+Node: mbadblocks54170
+Node: mcat55464
+Node: mcd56278
+Node: mcopy57133
+Node: mdel60143
+Node: mdeltree60482
+Node: mdir60899
+Node: mdu62175
+Node: mformat62681
+Node: mkmanifest71379
+Node: minfo73353
+Node: mlabel73923
+Node: mmd75076
+Node: mmount75425
+Node: mmove76028
+Node: mpartition76833
+Node: mrd82359
+Node: mren82717
+Node: mshortname83466
+Node: mshowfat83796
+Node: mtoolstest84205
+Node: mtype84777
+Node: mzip85628
+Ref: mzip-Footnote-187653
+Ref: mzip-Footnote-287734
+Node: Compiling mtools88021
+Node: Porting mtools89120
+Node: Command Index95028
+Node: Variable Index95156
+Node: Concept Index96979
 
 End Tag Table
 

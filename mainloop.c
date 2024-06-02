@@ -83,8 +83,8 @@ static const char *fix_mcwd(char *ans)
 	return ans;
 }
 
-static int _unix_loop(Stream_t *Dir, MainParam_t *mp,
-		      const char *filename UNUSEDP)
+static int mt_unix_loop(Stream_t *Dir, MainParam_t *mp,
+			const char *filename UNUSEDP)
 {
 	return unix_dir_loop(Dir, mp);
 }
@@ -108,13 +108,13 @@ int unix_loop(Stream_t *Stream UNUSEDP, MainParam_t *mp,
 	    mp->unixSourceName = arg;
 	}
 	/*	mp->dir.attr = ATTR_ARCHIVE;*/
-	mp->loop = _unix_loop;
+	mp->loop = mt_unix_loop;
 	if((mp->lookupflags & DO_OPEN)){
 		mp->File = SimpleFileOpen(0, 0, arg, O_RDONLY, 0, 0, 0, 0);
 		if(!mp->File){
 			perror(arg);
 #if 0
-			tmp = _basename(arg);
+			tmp = mt_basename(arg);
 			strncpy(mp->filename, tmp, VBUFSIZE);
 			mp->filename[VBUFSIZE-1] = '\0';
 #endif
@@ -227,7 +227,7 @@ static int handle_leaf(direntry_t *direntry, MainParam_t *mp,
 	return ret;
 }
 
-static int _dos_loop(Stream_t *Dir, MainParam_t *mp, const char *filename)
+static int mt_dos_loop(Stream_t *Dir, MainParam_t *mp, const char *filename)
 {
 	Stream_t *MyFile=0;
 	direntry_t entry;
@@ -415,7 +415,7 @@ static int common_dos_loop(MainParam_t *mp, const char *pathname,
 	Stream_t **DeferredFileP=NULL;
 
 	int ret;
-	mp->loop = _dos_loop;
+	mp->loop = mt_dos_loop;
 
 	drive='\0';
 	cwd = "";
@@ -524,7 +524,7 @@ int main_loop(MainParam_t *mp, char **argv, int argc)
 		if ( got_signal )
 			break;
 		mp->originalArg = argv[i];
-		mp->basenameHasWildcard = strpbrk(_basename(mp->originalArg),
+		mp->basenameHasWildcard = strpbrk(mt_basename(mp->originalArg),
 						  "*[?") != 0;
 		if (mp->unixcallback && (!argv[i][0]
 #ifdef OS_mingw32msvc
@@ -588,7 +588,7 @@ const char *mpGetBasename(MainParam_t *mp)
 				MAX_VNAMELEN+1, sizeof(mp->targetBuffer));
 		return mp->targetBuffer;
 	} else
-		return _basename(mp->unixSourceName);
+		return mt_basename(mp->unixSourceName);
 }
 
 void mpPrintFilename(FILE *fp, MainParam_t *mp)

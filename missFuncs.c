@@ -494,7 +494,7 @@ void myexit(int code)
 static const char PATH_SEP = '/';
 
 /*#ifndef HAVE_BASENAME*/
-const char *_basename(const char *filename)
+const char *mt_basename(const char *filename)
 {
 	char *ptr;
 
@@ -513,7 +513,7 @@ const char *_basename(const char *filename)
 /*#endif*/
 
 /* Strip the suffix ".exe" from the argument, if present. */
-void _stripexe(char *filename)
+void mt_stripexe(char *filename)
 {
 	char *ptr;
 	ptr = strrchr(filename, '.');

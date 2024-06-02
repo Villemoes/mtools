@@ -496,9 +496,9 @@ const char *basename(const char *filename);
 #endif
 #endif
 
-const char *_basename(const char *filename);
+const char *mt_basename(const char *filename);
 
-void _stripexe(char *filename);
+void mt_stripexe(char *filename);
 
 #ifndef __STDC__
 # ifndef signed

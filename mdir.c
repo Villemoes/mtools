@@ -137,7 +137,7 @@ static const char *dotted_num(mt_off_t num, size_t width, char **buf)
 	 * length is not exceeded (in %6ld, the result can be longer than 6!)
 	 */
 
-	numlo = num % 1000000000;
+	numlo = (unsigned long) (num % 1000000000);
 	numhi = (unsigned long) (num / 1000000000);
 
 	if(numhi && size > 9) {

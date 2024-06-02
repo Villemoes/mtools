@@ -61,7 +61,7 @@ static size_t pos_to_next_full_cyl(Buffer_t *Buffer, mt_off_t pos) {
  * All errors are fatal.
  */
 
-static int _buf_flush(Buffer_t *Buffer)
+static int mt_buf_flush(Buffer_t *Buffer)
 {
 	ssize_t ret;
 
@@ -100,7 +100,7 @@ static int _buf_flush(Buffer_t *Buffer)
 
 static int invalidate_buffer(Buffer_t *Buffer, mt_off_t start)
 {
-	if(_buf_flush(Buffer) < 0)
+	if(mt_buf_flush(Buffer) < 0)
 		return -1;
 
 	/* start reading at the beginning of start's sector
@@ -323,7 +323,7 @@ static int buf_flush(Stream_t *Stream)
 
 	if (!This->ever_dirty)
 		return 0;
-	ret = _buf_flush(This);
+	ret = mt_buf_flush(This);
 	if(ret == 0)
 		This->ever_dirty = 0;
 	return ret;
