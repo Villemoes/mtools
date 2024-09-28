@@ -506,7 +506,7 @@ static int test_directory(direntry_t *entry, MainParam_t *mp)
 {
 	Stream_t *File=mp->File;
 	Stream_t *Target;
-	char errmsg[80];
+	char errmsg[200];
 
 	if ((Target = SimpleFileOpen(0, 0, "-",
 				     O_WRONLY,

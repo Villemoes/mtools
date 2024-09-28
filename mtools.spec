@@ -1,7 +1,7 @@
 %define _binary_payload w9.gzdio
 Name:           mtools
 Summary:        mtools, read/write/list/format DOS disks under Unix
-Version:        4.0.44
+Version:        4.0.45
 Release:        1
 License:        GPLv3+
 Group:          Utilities/System
@@ -133,6 +133,9 @@ if [ -f %{_bindir}/install-info ] ; then
 fi
 
 %changelog
+* Sat Sep 28 2024 Alain Knaff <alain@knaff.lu>
+- Fixed iconv descriptor leak
+- Fixed size of error message buffer
 * Sun Jun 02 2024 Alain Knaff <alain@knaff.lu>
 - Added documentation for size parameters
 - Fix parsing of fat_start (reserved sectors) in mformat.c so

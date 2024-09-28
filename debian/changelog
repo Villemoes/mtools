@@ -1,3 +1,8 @@
+mtools (4.0.45) stable; urgency=low
+  * Fixed iconv descriptor leak
+  * Fixed size of error message buffer
+
+ -- Alain Knaff <alain@knaff.lu>  Sat, 28 Sep 2024 15:17:58 +0200
 mtools (4.0.44) stable; urgency=low
   * Added documentation for size parameters
   * Fix parsing of fat_start (reserved sectors) in mformat.c so

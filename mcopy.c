@@ -196,7 +196,7 @@ static int mt_unix_write(MainParam_t *mp, int needfilter, const char *unixFile)
 	Stream_t *File=mp->File;
 	Stream_t *Target, *Source;
 	struct MT_STAT stbuf;
-	char errmsg[80];
+	char errmsg[200];
 
 	File->Class->get_data(File, &mtime, 0, 0, 0);
 

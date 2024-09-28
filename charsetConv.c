@@ -70,6 +70,7 @@ static int try(const char *testCp) {
 	res = iconv(test,
 		    &inbuf, &inbufLen,
 		    &outbufP, &outbufLen);
+	iconv_close(test);
 	if(res != 0 || outbufLen != 0 || inbufLen != 0)
 		goto fail;
 	if(memcmp(outbuf, "ab", 2))
@@ -77,7 +78,6 @@ static int try(const char *testCp) {
 	/* fprintf(stderr, "%s ok\n", testCp); */
 	return 1;
  fail:
-	iconv_close(test);
  fail0:
 	/*fprintf(stderr, "%s fail\n", testCp);*/
 	return 0;
