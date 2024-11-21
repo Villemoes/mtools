@@ -218,7 +218,7 @@ static int add_to_request(Xdf_t *This, unsigned char ptr,
 		RR_SETSIZECODE(request+(*nr), REC.sizecode);
 		RR_SETDIRECTION(request+(*nr), direction);
 		RR_SETDATA(request+(*nr),
-			   (caddr_t) This->buffer + ptr * This->sector_size);
+			   (void *) This->buffer + ptr * This->sector_size);
 		(*nr)++;
 	}
 	compactify->ptr = ptr;

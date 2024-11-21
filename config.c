@@ -69,7 +69,7 @@ const char *mtools_date_string="yyyy-mm-dd";
 
 typedef struct switches_l {
     const char *name;
-    caddr_t address;
+    void * address;
     enum {
 	T_INT,
 	T_STRING,
@@ -82,20 +82,20 @@ typedef struct switches_l {
 } switches_t;
 
 static switches_t global_switches[] = {
-    { "MTOOLS_LOWER_CASE", (caddr_t) & mtools_ignore_short_case, T_UINT },
-    { "MTOOLS_FAT_COMPATIBILITY", (caddr_t) & mtools_fat_compatibility, T_UINT },
-    { "MTOOLS_SKIP_CHECK", (caddr_t) & mtools_skip_check, T_UINT },
-    { "MTOOLS_NO_VFAT", (caddr_t) & mtools_no_vfat, T_UINT },
-    { "MTOOLS_RATE_0", (caddr_t) &mtools_rate_0, T_UINT8 },
-    { "MTOOLS_RATE_ANY", (caddr_t) &mtools_rate_any, T_UINT8 },
-    { "MTOOLS_NAME_NUMERIC_TAIL", (caddr_t) &mtools_numeric_tail, T_UINT },
-    { "MTOOLS_DOTTED_DIR", (caddr_t) &mtools_dotted_dir, T_UINT },
+    { "MTOOLS_LOWER_CASE", (void *) & mtools_ignore_short_case, T_UINT },
+    { "MTOOLS_FAT_COMPATIBILITY", (void *) & mtools_fat_compatibility, T_UINT },
+    { "MTOOLS_SKIP_CHECK", (void *) & mtools_skip_check, T_UINT },
+    { "MTOOLS_NO_VFAT", (void *) & mtools_no_vfat, T_UINT },
+    { "MTOOLS_RATE_0", (void *) &mtools_rate_0, T_UINT8 },
+    { "MTOOLS_RATE_ANY", (void *) &mtools_rate_any, T_UINT8 },
+    { "MTOOLS_NAME_NUMERIC_TAIL", (void *) &mtools_numeric_tail, T_UINT },
+    { "MTOOLS_DOTTED_DIR", (void *) &mtools_dotted_dir, T_UINT },
     { "MTOOLS_TWENTY_FOUR_HOUR_CLOCK",
-      (caddr_t) &mtools_twenty_four_hour_clock, T_UINT },
+      (void *) &mtools_twenty_four_hour_clock, T_UINT },
     { "MTOOLS_DATE_STRING",
-      (caddr_t) &mtools_date_string, T_STRING },
-    { "MTOOLS_LOCK_TIMEOUT", (caddr_t) &mtools_lock_timeout, T_UINT },
-    { "DEFAULT_CODEPAGE", (caddr_t) &mtools_default_codepage, T_UINT }
+      (void *) &mtools_date_string, T_STRING },
+    { "MTOOLS_LOCK_TIMEOUT", (void *) &mtools_lock_timeout, T_UINT },
+    { "DEFAULT_CODEPAGE", (void *) &mtools_default_codepage, T_UINT }
 };
 
 typedef struct {
@@ -159,7 +159,7 @@ static struct {
     { "160k",			12, 40, 1, 8 }
 };
 
-#define OFFS(x) ((caddr_t)&((struct device *)0)->x)
+#define OFFS(x) ((void *)&((struct device *)0)->x)
 
 static switches_t dswitches[]= {
     { "FILE", OFFS(name), T_STRING },
@@ -535,7 +535,7 @@ static void finish_drive_clause(void)
 #endif
 
 static int set_var(struct switches_l *switches, int nr,
-		   caddr_t base_address)
+		   void * base_address)
 {
     int i;
     for(i=0; i < nr; i++) {
@@ -801,7 +801,7 @@ static int parse_one(int privilege)
     if((cur_dev < 0 ||
 	(set_var(dswitches,
 		 sizeof(dswitches)/sizeof(*dswitches),
-		 (caddr_t)&devices[cur_dev]) &&
+		 (void *)&devices[cur_dev]) &&
 	 set_openflags(&devices[cur_dev]) &&
 	 set_misc_flags(&devices[cur_dev]) &&
 	 set_def_format(&devices[cur_dev]))) &&

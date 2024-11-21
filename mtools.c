@@ -42,14 +42,12 @@ static const struct dispatch {
 	{"mmount",mmount, 0},
 	{"mpartition",mpartition, 0},
 	{"mrd",mdel, 1},
-	{"mread",mcopy, 0},
 	{"mmove",mmove, 0},
 	{"mren",mmove, 1},
 	{"mshowfat", mshowfat, 0},
 	{"mshortname", mshortname, 0},
 	{"mtoolstest", mtoolstest, 0},
 	{"mtype",mcopy, 1},
-	{"mwrite",mcopy, 0},
 	{"mzip", mzip, 0}
 };
 #define NDISPATCH (sizeof dispatch / sizeof dispatch[0])

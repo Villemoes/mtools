@@ -131,7 +131,7 @@ static inline char ch_tolower(char ch)
 
 static inline void init_random(void)
 {
-	srandom((unsigned int)time (0));
+	srand48((unsigned int)time (0));
 }
 
 static inline size_t ptrdiff (const char *end, const char *begin)

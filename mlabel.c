@@ -157,7 +157,7 @@ void mlabel(int argc, char **argv, int type UNUSEDP)
 			case 'n':
 				set_serial = SER_RANDOM;
 				init_random();
-				serial=(uint32_t) random();
+				serial=(uint32_t) lrand48();
 				break;
 			case 'N':
 				set_serial = SER_SET;

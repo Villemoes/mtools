@@ -1,3 +1,12 @@
+mtools (4.0.46) stable; urgency=low
+  * iconv buffer overflow fixes
+  * removed references to mread and mwrite (obsolete subcommands
+    from mcopy)
+  * documented mdoctorfat, and addressed 2 bugs/oversights
+  * removed references to obsolete mread and mwrite
+  * portability fixes (dietlibc and MacOS X) & simplification
+
+ -- Alain Knaff <alain@knaff.lu>  Thu, 21 Nov 2024 07:57:50 +0100
 mtools (4.0.45) stable; urgency=low
   * Fixed iconv descriptor leak
   * Fixed size of error message buffer

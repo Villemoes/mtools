@@ -48,7 +48,7 @@ static void set_mtime(const char *target, time_t mtime)
 		utimes(target, tv);
 #else
 #ifdef HAVE_UTIME
-#ifndef HAVE_UTIMBUF
+#ifndef HAVE_UTIME_H
 		struct utimbuf {
 			time_t actime;       /* access time */
 			time_t modtime;      /* modification time */

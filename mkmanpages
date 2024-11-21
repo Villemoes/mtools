@@ -99,6 +99,7 @@ echo mcopy
 echo mdel
 echo mdeltree
 echo mdir
+echo mdoctorfat
 echo mdu
 echo mformat
 echo minfo

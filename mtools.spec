@@ -1,7 +1,7 @@
 %define _binary_payload w9.gzdio
 Name:           mtools
 Summary:        mtools, read/write/list/format DOS disks under Unix
-Version:        4.0.45
+Version:        4.0.46
 Release:        1
 License:        GPLv3+
 Group:          Utilities/System
@@ -52,6 +52,7 @@ rm %{buildroot}%{_infodir}/dir
 %{_mandir}/man1/mcopy.1*
 %{_mandir}/man1/mdel.1*
 %{_mandir}/man1/mdeltree.1*
+%{_mandir}/man1/mdoctorfat.1*
 %{_mandir}/man1/mdir.1*
 %{_mandir}/man1/mdu.1*
 %{_mandir}/man1/mformat.1*
@@ -80,6 +81,7 @@ rm %{buildroot}%{_infodir}/dir
 %{_bindir}/mdel
 %{_bindir}/mdeltree
 %{_bindir}/mdir
+%{_bindir}/mdoctorfat
 %{_bindir}/mdu
 %{_bindir}/mformat
 %{_bindir}/minfo
@@ -133,6 +135,13 @@ if [ -f %{_bindir}/install-info ] ; then
 fi
 
 %changelog
+* Thu Nov 21 2024 Alain Knaff <alain@knaff.lu>
+- iconv buffer overflow fixes
+- removed references to mread and mwrite (obsolete subcommands
+  from mcopy)
+- documented mdoctorfat, and addressed 2 bugs/oversights
+- removed references to obsolete mread and mwrite
+- portability fixes (dietlibc and MacOS X) & simplification
 * Sat Sep 28 2024 Alain Knaff <alain@knaff.lu>
 - Fixed iconv descriptor leak
 - Fixed size of error message buffer

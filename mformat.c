@@ -168,7 +168,7 @@ static inline void inst_boot_prg(union bootsector *boot, uint16_t offset)
 	  boot->boot.jump[1] = (uint8_t) (offset - 3);
 	  boot->boot.jump[2] = (uint8_t) ( (offset - 3) >> 8);
 	}
-	set_word(boot->boot.jump + offset + 20, offset + 24);
+	set_word(boot->bytes + offset + 20, offset + 24);
 }
 
 /* Set up the root directory */
@@ -1387,7 +1387,7 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 	if (!serial_set || Atari)
 		init_random();
 	if (!serial_set)
-		serial=(uint32_t) random();
+		serial=(uint32_t) lrand48();
 	set_dword(labelBlock->serial, serial);
 	label_name_pc(GET_DOSCONVERT((Stream_t *)Fs),
 		      label[0] ? label : "NO NAME    ", 0,
@@ -1410,9 +1410,9 @@ void mformat(int argc, char **argv, int dummy UNUSEDP)
 	}
 	if(Atari) {
 		boot.boot.banner[4] = 0;
-		boot.boot.banner[5] = (char) random();
-		boot.boot.banner[6] = (char) random();
-		boot.boot.banner[7] = (char) random();
+		boot.boot.banner[5] = (char) lrand48();
+		boot.boot.banner[6] = (char) lrand48();
+		boot.boot.banner[7] = (char) lrand48();
 	}
 
 	if(!keepBoot && bootOffset <= UINT16_MAX)

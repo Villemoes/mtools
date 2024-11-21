@@ -167,7 +167,7 @@ int scsi_cmd(int fd, unsigned char cdb[6], uint8_t cmdlen, scsi_io_mode_t mode,
 
 	return 0;
 
-#elif defined OS_linux
+#elif defined (OS_linux) && defined (SG_IO)
 	struct sg_io_hdr my_scsi_cmd;
 
 	/*

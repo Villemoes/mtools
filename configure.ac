@@ -16,6 +16,7 @@ dnl along with Mtools.  If not, see <http://www.gnu.org/licenses/>.
 dnl
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT
+AC_USE_SYSTEM_EXTENSIONS dnl for strndup
 AC_CONFIG_SRCDIR([buffer.c])
 AC_CONFIG_HEADERS([config.h])
 
@@ -106,7 +107,7 @@ AC_CHECK_LIB(iconv, iconv)
 dnl Checks for header files.
 AC_HEADER_SYS_WAIT
 AC_HEADER_STDBOOL
-AC_CHECK_HEADERS(getopt.h stdarg.h inttypes.h \
+AC_CHECK_HEADERS(getopt.h stdarg.h \
 libc.h fcntl.h limits.h sys/file.h sys/ioctl.h time.h sys/time.h \
 sys/param.h memory.h malloc.h io.h signal.h sys/signal.h utime.h sgtty.h \
 sys/floppy.h mntent.h sys/sysmacros.h assert.h \
@@ -132,7 +133,6 @@ AC_TYPE_OFF_T
 AC_TYPE_UID_T
 AC_TYPE_PID_T
 
-AC_CHECK_TYPES(caddr_t)
 AC_CHECK_TYPES(long long)
 AC_CHECK_SIZEOF(size_t)
 AC_CHECK_SIZEOF(off_t)
@@ -142,7 +142,7 @@ AC_CHECK_SIZEOF(int)
 
 seek_function=
 
-if test $ac_cv_sizeof_off_t -ge 8 ; then
+if test "0$ac_cv_sizeof_off_t" -ge 8 ; then
    seek_function=lseek
 fi
 
@@ -218,7 +218,7 @@ AC_STRUCT_TM
 
 dnl Checks for library functions.
 
-AC_CHECK_FUNCS(strerror random srandom strchr strrchr lockf flock \
+AC_CHECK_FUNCS(strerror lrand48 srand48 strchr strrchr lockf flock \
 strcasecmp strncasecmp strnlen atexit on_exit getpass memmove \
 strdup strndup strcspn strspn strtoul strtol strtoll strtoui \
 memcpy strpbrk memset setenv seteuid setresuid \
@@ -231,7 +231,9 @@ alarm sigaction usleep lstat unsetenv mkdir)
 AC_CHECK_FUNCS(utimes utime, [break])
 AC_CHECK_FUNCS(tzset gettimeofday)
 
-AC_CHECK_DECLS([sys_errlist, optarg])
+AC_CHECK_DECLS([sys_errlist, errno],,,[AC_INCLUDES_DEFAULT
+#include <errno.h>])
+AC_CHECK_DECLS([optarg])
 
 [
 host_os0=`echo $host_os | sed 's/-/_/g'`
@@ -249,7 +251,6 @@ if [ $host_os1 != $host_os3 ] && [ $host_os2 != $host_os3 ] ; then
 fi
 
 my_host_os=`echo $host_os1 $host_os2 $host_os3 | sort -u`
-objs=`echo $srcdir/*.c | sed 's/\.c$/.o/' `
 if [ "X$GCC" = "Xyes" ] ; then
     if [ "$host_os3" = aux ] ; then
 	    CFLAGS="$CFLAGS -ZP"
@@ -329,9 +330,16 @@ if test X$use_floppyd = Xyes; then
     AC_CHECK_FUNCS(setpgrp getuserid getgroupid)
     AC_FUNC_SETPGRP
 
-    FLOPPYD_LIBS=""
-    AC_CHECK_LIB(X11, XOpenDisplay, [ FLOPPYD_LIBS="-lX11 $FLOPPYD_LIBS" ])
+    FLOPPYD_LIBS="-lX11"
+    saved_LDFLAGS="$LDFLAGS"
+    if test -n "$x_libraries"; then
+	# Arrange for directory for X11 libraries to be included in
+	# linker command line. Why does autoconf not provide a cleaner
+	# way to achieve this?
+	LDFLAGS="$LDFLAGS -L$x_libraries"
+    fi
     AC_CHECK_LIB(Xau, XauFileName, [ FLOPPYD_LIBS="-lXau $FLOPPYD_LIBS" ])
+    LDFLAGS="$saved_LDFLAGS"
     AC_PATH_XTRA
     AC_CHECK_HEADERS(sys/socket.h arpa/inet.h netdb.h netinet/in.h \
                      netinet/tcp.h X11/Xauth.h X11/Xlib.h)
